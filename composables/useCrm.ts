@@ -50,6 +50,7 @@ function mapLead(r: any) {
   return {
     id: r.id, company: r.company, seg: r.seg, value: Number(r.value) || 0, stage: r.stage, temp: r.temp || 'morno',
     site: r.site, ambiente: r.ambiente, estado: r.estado, city: r.city, employees: r.employees, shipments: r.shipments,
+    faturamento: r.faturamento != null ? Number(r.faturamento) : null, instagram: r.instagram, plataforma: r.plataforma,
     centelhaFase: r.centelha_fase, eventoNome: r.evento_nome, indicadoPor: r.indicado_por,
     tags: r.tags || [], lostReason: r.lost_reason, prevStage: r.prev_stage, logoUrl: r.logo_url,
     created: r.created_at ? r.created_at.slice(0, 10) : '',
@@ -70,7 +71,8 @@ const LEAD_COL: Record<string, string> = {
   company: 'company', site: 'site', seg: 'seg', value: 'value', stage: 'stage', temp: 'temp',
   ambiente: 'ambiente', estado: 'estado', city: 'city', employees: 'employees', shipments: 'shipments',
   lostReason: 'lost_reason', prevStage: 'prev_stage', logoUrl: 'logo_url',
-  centelhaFase: 'centelha_fase', eventoNome: 'evento_nome', tags: 'tags', indicadoPor: 'indicado_por'
+  centelhaFase: 'centelha_fase', eventoNome: 'evento_nome', tags: 'tags', indicadoPor: 'indicado_por',
+  faturamento: 'faturamento', instagram: 'instagram', plataforma: 'plataforma'
 }
 const ITEM_TABLE: Record<string, string> = { contacts: 'contatos', tasks: 'tarefas', activities: 'atividades', attachments: 'anexos' }
 

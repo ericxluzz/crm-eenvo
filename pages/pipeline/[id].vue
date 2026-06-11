@@ -45,6 +45,9 @@
             <div class="row"><span class="k"><Icon name="pin" :size="15" />Localização</span><span class="v">{{ lead.city }}</span></div>
             <div class="row"><span class="k"><Icon name="users" :size="15" />Funcionários</span><span class="v">{{ lead.employees }}</span></div>
             <div class="row"><span class="k"><Icon name="package" :size="15" />Envios/mês</span><span class="v">{{ lead.shipments }}</span></div>
+            <div v-if="lead.faturamento" class="row"><span class="k"><Icon name="coin" :size="15" />Faturamento</span><span class="v">{{ fmtBRL(lead.faturamento) }}/mês</span></div>
+            <div v-if="lead.plataforma" class="row"><span class="k"><Icon name="building" :size="15" />Plataforma</span><span class="v">{{ lead.plataforma }}</span></div>
+            <div v-if="lead.instagram" class="row"><span class="k"><Icon name="link" :size="15" />Instagram</span><span class="v truncate">{{ lead.instagram }}</span></div>
             <div class="row"><span class="k"><Icon name="pin" :size="15" />Região</span><span class="v">{{ lead.estado }} · {{ lead.regiao }}</span></div>
             <div class="row"><span class="k"><Icon name="clock" :size="15" />Criado em</span><span class="v">{{ fmtDate(lead.created) }}</span></div>
           </div>
@@ -313,17 +316,25 @@
 
     <!-- MODAL: editar dados do lead -->
     <div v-if="modal === 'edit'" class="modal-overlay" @mousedown="modal = ''">
-      <div class="modal" style="width:480px" @mousedown.stop>
+      <div class="modal" style="width:620px" @mousedown.stop>
         <div class="modal-head">
-          <div><h3>Editar dados do lead</h3><p>Atualize as informações da empresa.</p></div>
+          <div><h3>Editar dados do lead</h3><p>Empresa, números e informações de marketing.</p></div>
           <button class="icon-btn" aria-label="Fechar" @click="modal = ''"><Icon name="x" :size="18" /></button>
         </div>
         <div class="modal-body">
-          <div style="display:grid;gap:12px">
+          <div class="field-grid">
             <div class="field"><label>Empresa</label><input v-model="eForm.company" /></div>
-            <div class="field"><label>Site</label><input v-model="eForm.site" /></div>
-            <div class="field"><label>Segmento</label><input v-model="eForm.seg" /></div>
-            <div class="field"><label>MRR (R$/mês)</label><input v-model.number="eForm.value" type="number" /></div>
+            <div class="field"><label>Site</label><input v-model="eForm.site" placeholder="empresa.com.br" /></div>
+            <div class="field"><label>Segmento</label><input v-model="eForm.seg" placeholder="ex.: Moda & Vestuário" /></div>
+            <div class="field"><label>Temperatura</label><select v-model="eForm.temp"><option value="quente">Quente</option><option value="morno">Morno</option><option value="frio">Frio</option></select></div>
+            <div class="field"><label>MRR potencial (R$/mês)</label><input v-model.number="eForm.value" type="number" placeholder="plano eenvo" /></div>
+            <div class="field"><label>Faturamento mensal (R$)</label><input v-model.number="eForm.faturamento" type="number" placeholder="receita da empresa" /></div>
+            <div class="field"><label>Funcionários</label><input v-model="eForm.employees" placeholder="ex.: 50–120" /></div>
+            <div class="field"><label>Envios/mês</label><input v-model="eForm.shipments" placeholder="ex.: ~4.200/mês" /></div>
+            <div class="field"><label>Cidade</label><input v-model="eForm.city" placeholder="ex.: São Paulo, SP" /></div>
+            <div class="field"><label>Estado (UF)</label><select v-model="eForm.estado"><option v-for="u in UFS" :key="u">{{ u }}</option></select></div>
+            <div class="field"><label>Instagram / redes</label><input v-model="eForm.instagram" placeholder="@empresa" /></div>
+            <div class="field"><label>Plataforma de e-commerce</label><input v-model="eForm.plataforma" placeholder="VTEX, Shopify, Nuvemshop…" /></div>
           </div>
         </div>
         <div class="modal-foot">
@@ -336,7 +347,7 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, fmtBRL } from '~/utils/protoData'
+import { STAGES, UFS, fmtBRL } from '~/utils/protoData'
 
 const { leads, updateLead, addLeadItem, updateLeadItem, removeLeadItem, setLeadNext } = useCrm()
 const { toast } = useOverlays()
@@ -554,13 +565,24 @@ function reabrir() {
 // Editar dados do lead
 const eForm = ref<any>({})
 function openEdit() {
-  const l = lead.value
-  eForm.value = { company: l.company, site: l.site, seg: l.seg, value: l.value }
+  const l: any = lead.value
+  eForm.value = {
+    company: l.company, site: l.site, seg: l.seg, value: l.value, faturamento: l.faturamento,
+    temp: l.temp || 'morno', employees: l.employees, shipments: l.shipments,
+    city: l.city, estado: l.estado, instagram: l.instagram, plataforma: l.plataforma
+  }
   moreOpen.value = false
   modal.value = 'edit'
 }
 function saveEdit() {
-  updateLead(lead.value.id, { company: eForm.value.company, site: eForm.value.site, seg: eForm.value.seg, value: Number(eForm.value.value) || 0 })
+  const f = eForm.value
+  updateLead(lead.value.id, {
+    company: f.company, site: f.site, seg: f.seg,
+    value: Number(f.value) || 0,
+    faturamento: f.faturamento != null && f.faturamento !== '' ? Number(f.faturamento) : null,
+    temp: f.temp, employees: f.employees, shipments: f.shipments,
+    city: f.city, estado: f.estado, instagram: f.instagram, plataforma: f.plataforma
+  })
   modal.value = ''
   toast('Lead atualizado.', { type: 'pos', icon: 'check' })
 }
