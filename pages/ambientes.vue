@@ -3,7 +3,7 @@
     <!-- lista -->
     <template v-if="!sel">
       <div class="page-head">
-        <div class="pt"><h1>Ambientes de captação</h1><p class="sub">De onde os leads da eenvo chegam — abra um ambiente para ver os leads dentro dele.</p></div>
+        <div class="pt"><h1>Ambientes de captação</h1><p class="sub">De onde os leads da eenvo chegam. Abra um ambiente para ver os leads dentro dele.</p></div>
         <div class="acts"><button class="btn btn-primary"><Icon name="plus" :size="17" /> Novo ambiente</button></div>
       </div>
       <div class="amb-grid">

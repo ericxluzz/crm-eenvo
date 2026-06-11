@@ -1,10 +1,18 @@
 <template>
   <div class="screen content-pad">
     <div class="page-head">
-      <div class="pt"><h1>Visão geral</h1><p class="sub">Bom dia, Diego — panorama da captação e do funil da eenvo.</p></div>
+      <div class="pt"><h1>Visão geral</h1><p class="sub">Bom dia, Diego. Panorama da captação e do funil da eenvo.</p></div>
       <div class="acts">
-        <button class="btn btn-secondary"><Icon name="calendar" :size="16" /> Jun 2026</button>
-        <button class="btn btn-secondary"><Icon name="download" :size="16" /> Exportar</button>
+        <label class="period-wrap">
+          <Icon name="calendar" :size="16" />
+          <select v-model="periodo" class="period-sel">
+            <option value="all">Todo o período</option>
+            <option value="2026-06">Junho 2026</option>
+            <option value="2026-05">Maio 2026</option>
+            <option value="2026-04">Abril 2026</option>
+          </select>
+        </label>
+        <button class="btn btn-secondary" @click="exportar"><Icon name="download" :size="16" /> Exportar</button>
       </div>
     </div>
 
@@ -69,20 +77,45 @@
 <script setup lang="ts">
 import { STAGES, fmtBRL } from '~/utils/protoData'
 
-const { leads, ambientes } = useCrm()
+const { leads, ambientes, ambById } = useCrm()
 
-const open = computed(() => leads.value.filter((l) => l.stage !== 'perdido'))
+const periodo = ref('all')
+const baseLeads = computed(() => periodo.value === 'all'
+  ? leads.value
+  : leads.value.filter((l) => (l.created || '').startsWith(periodo.value)))
+
+const open = computed(() => baseLeads.value.filter((l) => l.stage !== 'perdido'))
 const mrr = computed(() => open.value.reduce((a, l) => a + l.value, 0))
 
 const funnel = computed(() => STAGES.filter((s) => s.id !== 'perdido').map((s) => ({
   ...s,
-  count: leads.value.filter((l) => l.stage === s.id).length,
-  val: leads.value.filter((l) => l.stage === s.id).reduce((a, l) => a + l.value, 0)
+  count: baseLeads.value.filter((l) => l.stage === s.id).length,
+  val: baseLeads.value.filter((l) => l.stage === s.id).reduce((a, l) => a + l.value, 0)
 })))
-const maxF = computed(() => Math.max(...funnel.value.map((f) => f.count)))
+const maxF = computed(() => Math.max(1, ...funnel.value.map((f) => f.count)))
 
-const ambSeg = computed(() => ambientes.value.map((a) => ({ id: a.id, l: a.short, v: leads.value.filter((l) => l.ambiente === a.id).length, c: a.color })))
-const today = computed(() => leads.value.filter((l) => l.next && l.next.label !== '—').slice(0, 5))
+const ambSeg = computed(() => ambientes.value.map((a) => ({ id: a.id, l: a.short, v: baseLeads.value.filter((l) => l.ambiente === a.id).length, c: a.color })))
+const today = computed(() => baseLeads.value.filter((l) => l.next && l.next.label !== '—').slice(0, 5))
 
 function fmtDate(d: string) { return d ? new Date(d).toLocaleDateString('pt-BR') : '' }
+
+function exportar() {
+  const stageName = (id: string) => STAGES.find((s) => s.id === id)?.name ?? id
+  const head = ['ID', 'Empresa', 'Segmento', 'Estágio', 'MRR (R$/mês)', 'Ambiente', 'Estado', 'Região', 'Criado em']
+  const rows = baseLeads.value.map((l) => [l.id, l.company, l.seg, stageName(l.stage), l.value, ambById(l.ambiente)?.short ?? l.ambiente, l.estado, l.regiao, l.created])
+  const esc = (c: any) => `"${String(c ?? '').replace(/"/g, '""')}"`
+  const csv = [head, ...rows].map((r) => r.map(esc).join(',')).join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `eenvo-visao-geral-${periodo.value}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 </script>
+
+<style scoped>
+.period-wrap { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: #fff; color: var(--ink-2); cursor: pointer; }
+.period-sel { border: 0; background: transparent; font-family: var(--font); font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; outline: none; }
+</style>

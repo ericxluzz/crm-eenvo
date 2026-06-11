@@ -16,7 +16,7 @@
       <span class="ic" style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--info-bg);color:var(--info);flex:0 0 38px"><Icon name="calendar" :size="19" /></span>
       <div class="grow">
         <div class="cell-strong">Mostrando uma semana de exemplo</div>
-        <div class="muted" style="font-size:13px">Conecte sua Agenda Google para ver seus compromissos reais aqui — somente leitura.</div>
+        <div class="muted" style="font-size:13px">Conecte sua Agenda Google para ver seus compromissos reais aqui (somente leitura).</div>
       </div>
       <a href="/api/google/conectar" class="btn btn-secondary btn-sm"><GoogleG :size="15" /> Conectar</a>
     </div>

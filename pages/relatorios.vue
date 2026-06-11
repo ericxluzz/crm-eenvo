@@ -1,7 +1,7 @@
 <template>
   <div class="screen content-pad">
     <div class="page-head">
-      <div class="pt"><h1>Relatórios</h1><p class="sub">Captação por ambiente e região — Junho 2026</p></div>
+      <div class="pt"><h1>Relatórios</h1><p class="sub">Captação por ambiente e região · Junho 2026</p></div>
       <div class="acts">
         <button class="btn btn-secondary"><Icon name="calendar" :size="16" /> Este mês</button>
         <button class="btn btn-primary"><Icon name="download" :size="16" /> Exportar PDF</button>
