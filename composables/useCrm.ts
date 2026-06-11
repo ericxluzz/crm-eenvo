@@ -32,9 +32,28 @@ export function useCrm() {
   const setLeadLogo = (id: string, url: string | null) => updateLead(id, { logoUrl: url })
   const setAmbLogo = (id: string, url: string | null) => updateAmbiente(id, { logoUrl: url })
 
+  // ---- Mutações de arrays dentro de um lead (contatos, tarefas, atividades, anexos) ----
+  // `arr` é o array atual exibido (já reflete seed + override); cada item tem `id`.
+  // Persistem como qualquer campo do override (updateLead → localStorage).
+  function addLeadItem(id: string, field: string, item: any, arr: any[]) {
+    updateLead(id, { [field]: [...arr, item] })
+  }
+  function updateLeadItem(id: string, field: string, itemId: string, patch: Record<string, any>, arr: any[]) {
+    updateLead(id, { [field]: arr.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) })
+  }
+  function removeLeadItem(id: string, field: string, itemId: string, arr: any[]) {
+    updateLead(id, { [field]: arr.filter((it) => it.id !== itemId) })
+  }
+  // Mantém a "próxima tarefa" do card do Pipeline em sincronia com a lista de tarefas.
+  const setLeadNext = (id: string, task: any | null) => updateLead(id, { next: task })
+
   function ambById(id: string) { return ambientes.value.find((a) => a.id === id) }
 
-  return { leads, ambientes, leadOv, ambOv, updateLead, updateAmbiente, setLeadLogo, setAmbLogo, ambById }
+  return {
+    leads, ambientes, leadOv, ambOv,
+    updateLead, updateAmbiente, setLeadLogo, setAmbLogo, ambById,
+    addLeadItem, updateLeadItem, removeLeadItem, setLeadNext
+  }
 }
 
 export function hydrateCrm() {

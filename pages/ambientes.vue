@@ -8,10 +8,21 @@
       </div>
 
       <!-- resumo -->
-      <div class="stat-grid" style="margin-bottom:18px">
-        <StatCard icon="globe" icon-bg="#8E3FC41A" icon-fg="#8E3FC4" label="Ambientes ativos" :value="ambientes.length" :foot="`${total} leads no total`" />
-        <StatCard icon="users" icon-bg="#2563EB1A" icon-fg="#2563EB" label="Leads captados" :value="total" :foot="`em ${ambientes.length} ambientes`" />
-        <StatCard icon="coin" icon-bg="#16A34A1A" icon-fg="#16A34A" label="MRR potencial total" :value="fmtBRL(mrrTotal)" foot="soma de todos os ambientes" />
+      <div class="amb-summary">
+        <div class="amb-sum">
+          <span class="ic" style="background:#8E3FC41A;color:#8E3FC4"><Icon name="globe" :size="16" /></span>
+          <div><span class="v">{{ ambientes.length }}</span><span class="l">Ambientes ativos</span></div>
+        </div>
+        <span class="sep" />
+        <div class="amb-sum">
+          <span class="ic" style="background:#2563EB1A;color:#2563EB"><Icon name="users" :size="16" /></span>
+          <div><span class="v">{{ total }}</span><span class="l">Leads captados</span></div>
+        </div>
+        <span class="sep" />
+        <div class="amb-sum">
+          <span class="ic" style="background:#16A34A1A;color:#16A34A"><Icon name="coin" :size="16" /></span>
+          <div><span class="v">{{ fmtBRL(mrrTotal) }}</span><span class="l">MRR potencial total</span></div>
+        </div>
       </div>
 
       <!-- toolbar -->
@@ -158,6 +169,7 @@ const { leads, ambientes, ambById, updateAmbiente, setAmbLogo } = useCrm()
 
 const sel = ref<string | null>(null)
 const q = ref('')
+const qd = useDebouncedRef(q) // busca com debounce
 const sort = ref<'leads' | 'mrr' | 'az'>('leads')
 
 const total = computed(() => leads.value.length)
@@ -169,7 +181,7 @@ const mrrTotal = computed(() => leads.value.filter((l) => l.stage !== 'perdido')
 
 // linhas enriquecidas + filtro + ordenação
 const rows = computed(() => {
-  const term = q.value.trim().toLowerCase()
+  const term = qd.value.trim().toLowerCase()
   let list = ambientes.value.map((a: any) => ({
     ...a,
     _leads: leadsDe(a.id).length,
@@ -214,4 +226,12 @@ function openLead(id: string) { navigateTo(`/pipeline/${id}`) }
 .amb-search input::placeholder { color: var(--ink-3); }
 .amb-tbl tbody tr { cursor: pointer; }
 .min0 { min-width: 0; }
+
+.amb-summary { display: flex; align-items: center; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--sh-1); padding: 12px 20px; margin-bottom: 16px; }
+.amb-sum { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
+.amb-sum .ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; flex: 0 0 34px; }
+.amb-sum .v { display: block; font-family: var(--font-mono); font-size: 19px; font-weight: 600; color: var(--ink); line-height: 1.15; }
+.amb-sum .l { display: block; font-size: 12px; color: var(--ink-3); }
+.amb-summary .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 8px; }
+@media (max-width: 720px) { .amb-summary { flex-wrap: wrap; } .amb-summary .sep { display: none; } }
 </style>

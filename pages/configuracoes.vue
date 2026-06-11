@@ -119,7 +119,8 @@ const prefList = [
 const countStage = (id: string) => LEADS.filter((l) => l.stage === id).length
 
 // Integração Google Agenda
-const { data } = await useAsyncData('cfg-google', () => $fetch('/api/google/status').catch(() => ({ conectado: false })))
+// Lazy: não bloqueia a página esperando o status do Google (chamada de rede).
+const { data } = useLazyAsyncData('cfg-google', () => $fetch('/api/google/status').catch(() => ({ conectado: false })))
 const conectado = computed(() => !!data.value?.conectado)
 </script>
 

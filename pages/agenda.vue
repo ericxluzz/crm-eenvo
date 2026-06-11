@@ -12,7 +12,7 @@
       </div>
     </div>
 
-    <div v-if="!connected" class="card card-pad" style="margin-bottom:18px;display:flex;align-items:center;gap:12px">
+    <div v-if="!connected && !pending" class="card card-pad" style="margin-bottom:18px;display:flex;align-items:center;gap:12px">
       <span class="ic" style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--info-bg);color:var(--info);flex:0 0 38px"><Icon name="calendar" :size="19" /></span>
       <div class="grow">
         <div class="cell-strong">Mostrando uma semana de exemplo</div>
@@ -141,7 +141,9 @@ const mmCells = (() => {
 })()
 
 // ---- Eventos (Google real ou exemplo) ----
-const { data } = await useAsyncData('gcal', () =>
+// Lazy: a página renderiza na hora; os eventos do Google entram quando a chamada
+// resolve (refresh→access token→events.list pode levar ~1s). Não bloqueia a navegação.
+const { data, pending } = useLazyAsyncData('gcal', () =>
   $fetch<{ conectado: boolean; eventos: any[] }>('/api/google/eventos', {
     query: { timeMin: monday.toISOString(), timeMax: weekEnd.toISOString() }
   }).catch(() => ({ conectado: false, eventos: [] }))
@@ -165,7 +167,9 @@ const blocks = computed(() => {
       if (eh <= sh) eh = sh + 0.5
       out.push({ day: di, top: (sh - START) * ROW, height: Math.max((eh - sh) * ROW - 3, 18), title: e.title, loc: e.location, color: REAL_COLOR, timeLabel: hm(sh) + '–' + hm(eh) })
     }
-  } else {
+  } else if (!pending.value) {
+    // Só mostra a semana de exemplo depois de saber que não há Google conectado
+    // (evita piscar eventos falsos antes dos reais chegarem).
     for (const e of EVENTS) {
       out.push({ day: e.day, top: (e.start - START) * ROW, height: Math.max((e.end - e.start) * ROW - 3, 18), title: e.title, loc: (e as any).loc || '', color: GCOLOR[e.type] || GCOLOR.call, timeLabel: hm(e.start) + '–' + hm(e.end) })
     }

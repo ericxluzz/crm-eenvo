@@ -152,9 +152,10 @@ const activeCount = computed(() =>
   stageSel.value.length + regiaoSel.value.length + tempSel.value.length
 )
 
-// filtragem (vale nos 2 modos)
+// filtragem (vale nos 2 modos). Busca com debounce: o quadro não re-renderiza a cada tecla.
+const qd = useDebouncedRef(q)
 const filtered = computed(() => {
-  const term = q.value.trim().toLowerCase()
+  const term = qd.value.trim().toLowerCase()
   let r = leads.value.filter((l) => {
     if (ambFilter.value !== 'todos' && l.ambiente !== ambFilter.value) return false
     if (stageSel.value.length && !stageSel.value.includes(l.stage)) return false
@@ -176,7 +177,19 @@ const columns = computed(() => {
   return STAGES.map((s) => ({ id: s.id, name: s.name, chip: STAGE_CHIP[s.id] }))
 })
 const keyOf = (l: any) => groupBy.value === 'ambiente' ? l.ambiente : groupBy.value === 'regiao' ? l.regiao : l.stage
-const colLeads = (id: string) => filtered.value.filter((l) => keyOf(l) === id)
+// Agrupa UMA vez por render (Map) em vez de refiltrar o array inteiro por coluna.
+// Importa para escalar: com 1000+ leads, evita N×colunas varreduras a cada mudança.
+const grouped = computed(() => {
+  const m = new Map<string, any[]>()
+  for (const l of filtered.value) {
+    const k = keyOf(l)
+    const arr = m.get(k)
+    if (arr) arr.push(l)
+    else m.set(k, [l])
+  }
+  return m
+})
+const colLeads = (id: string) => grouped.value.get(id) || []
 const colSum = (id: string) => colLeads(id).reduce((a, l) => a + l.value, 0)
 
 // LISTA paginada

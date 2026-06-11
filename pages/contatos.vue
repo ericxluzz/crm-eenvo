@@ -172,6 +172,7 @@ const { leads, updateLead, setLeadLogo } = useCrm()
 const { openNewLead } = useOverlays()
 
 const q = ref('')
+const qd = useDebouncedRef(q) // busca com debounce (re-render só após parar de digitar)
 const tab = ref('todos')
 const UFS = ['SP', 'RJ', 'MG', 'ES', 'PR', 'SC', 'RS', 'BA', 'PE', 'CE', 'GO', 'DF']
 const REGIOES = ['Sudeste', 'Sul', 'Nordeste', 'Centro-Oeste', 'Norte']
@@ -199,8 +200,8 @@ const activeCount = computed(() => [fAmb.value, fStage.value, fRegiao.value, fUF
 const filtered = computed(() => {
   let r = leads.value.slice()
   if (tab.value !== 'todos') r = r.filter((l: any) => tab.value === 'abertos' ? l.stage !== 'perdido' : l.stage === 'perdido')
-  if (q.value) {
-    const s = q.value.toLowerCase()
+  if (qd.value) {
+    const s = qd.value.toLowerCase()
     r = r.filter((l: any) => (l.company + l.contact.name + l.seg + l.estado + l.site).toLowerCase().includes(s))
   }
   if (fAmb.value) r = r.filter((l: any) => l.ambiente === fAmb.value)
@@ -219,7 +220,7 @@ const rangeFrom = computed(() => filtered.value.length ? (page.value - 1) * PER_
 const rangeTo = computed(() => Math.min(page.value * PER_PAGE, filtered.value.length))
 
 // reset página quando filtros/busca/tab mudam
-watch([q, tab, fAmb, fStage, fRegiao, fUF, sortBy], () => { page.value = 1 })
+watch([qd, tab, fAmb, fStage, fRegiao, fUF, sortBy], () => { page.value = 1 })
 watch(totalPages, (n) => { if (page.value > n) page.value = n })
 
 function clearFilters() { fAmb.value = ''; fStage.value = ''; fRegiao.value = ''; fUF.value = '' }

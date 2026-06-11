@@ -4,31 +4,20 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
 
   modules: [
-    '@primevue/nuxt-module',
     '@nuxtjs/supabase'
   ],
 
   // Estilos globais: design system do protótipo de alta fidelidade (eenvo).
-  // Ordem importa: tokens → base/atoms → telas.
+  // Ordem importa: tokens → base/atoms → telas. (Fontes via Google Fonts no head.)
   css: [
-    'primeicons/primeicons.css',
     '~/assets/css/proto-tokens.css',
     '~/assets/css/proto-styles.css',
     '~/assets/css/proto-screens.css'
   ],
 
-  // ---------------------------------------------------------------------------
-  // PrimeVue — tema da marca eenvo (roxo, white mode)
-  // ---------------------------------------------------------------------------
-  primevue: {
-    autoImport: true,
-    // `importTheme` precisa ficar na RAIZ de `primevue` — o @primevue/nuxt-module v4
-    // só registra o tema quando lê esta opção aqui (dentro de `options` ela é ignorada
-    // e os componentes renderizam sem estilo).
-    importTheme: { from: '~/themes/eenvo-preset.ts' },
-    options: {
-      ripple: true
-    }
+  // Login é público e estático → pré-renderizado (carrega do CDN, sem cold start).
+  routeRules: {
+    '/login': { prerender: true }
   },
 
   // ---------------------------------------------------------------------------
