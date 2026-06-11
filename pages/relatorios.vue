@@ -93,9 +93,9 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, fmtBRL } from '~/utils/protoData'
+import { fmtBRL } from '~/utils/protoData'
 
-const { leads, ambientes } = useCrm()
+const { leads, ambientes, stages, stageName } = useCrm()
 
 const totalLeads = computed(() => leads.value.length)
 const pct = (n: number) => totalLeads.value ? Math.round((n / totalLeads.value) * 100) : 0
@@ -117,7 +117,7 @@ const sparkCaptados = computed(() => {
 })
 
 // Distribuição por estágio (Donut)
-const stageSeg = computed(() => STAGES.map((s) => ({
+const stageSeg = computed(() => stages.value.map((s) => ({
   id: s.id, name: s.name, c: s.color,
   v: leads.value.filter((l) => l.stage === s.id).length,
 })).filter((s) => s.v > 0))
@@ -155,7 +155,6 @@ const motivos = computed(() => {
 
 // Exportar CSV real dos leads
 function exportar() {
-  const stageName = (id: string) => STAGES.find((s) => s.id === id)?.name ?? id
   const ambShort = (id: string) => ambientes.value.find((a) => a.id === id)?.short ?? id
   const head = ['ID', 'Empresa', 'Segmento', 'Estágio', 'Temperatura', 'MRR (R$/mês)', 'Ambiente', 'Estado', 'Região', 'Criado em']
   const rows = leads.value.map((l: any) => [l.id, l.company, l.seg, stageName(l.stage), l.temp, l.value, ambShort(l.ambiente), l.estado, l.regiao, l.created])

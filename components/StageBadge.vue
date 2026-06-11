@@ -1,11 +1,10 @@
 <template>
-  <span class="badge" :class="'badge-' + cls"><span class="dot" />{{ name }}</span>
+  <span class="badge" :style="{ background: chip[0], color: chip[1] }"><span class="dot" :style="{ background: chip[1] }" />{{ name }}</span>
 </template>
 
 <script setup lang="ts">
-import { STAGES } from '~/utils/protoData'
 const props = defineProps<{ stage: string }>()
-const MAP: Record<string, string> = { mapeado: 'gray', contatado: 'info', reuniao: 'purple', apresentado: 'info', proposta: 'warn', perdido: 'neg' }
-const cls = computed(() => MAP[props.stage] || 'gray')
-const name = computed(() => STAGES.find((s) => s.id === props.stage)?.name || props.stage)
+const { stageName, stageChip } = useCrm()
+const name = computed(() => stageName(props.stage))
+const chip = computed(() => stageChip(props.stage))
 </script>

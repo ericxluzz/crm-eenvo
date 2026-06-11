@@ -15,7 +15,7 @@
       v-model:q="q"
       v-model:amb-filter="ambFilter"
       :stage-sel="stageSel" :regiao-sel="regiaoSel" :temp-sel="tempSel"
-      :ambientes="ambientes" :stages="STAGES" :regioes="REGIOES"
+      :ambientes="ambientes" :stages="stages" :regioes="REGIOES"
       :groups="groups" :active-count="activeCount"
       @toggle-stage="toggleArr(stageSel, $event)"
       @toggle-regiao="toggleArr(regiaoSel, $event)"
@@ -107,12 +107,8 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, fmtBRL } from '~/utils/protoData'
+import { fmtBRL } from '~/utils/protoData'
 
-const STAGE_CHIP: Record<string, string[]> = {
-  mapeado: ['#F1F2F4', '#52525B'], contatado: ['#EFF4FF', '#2563EB'], reuniao: ['#F3EAFB', '#7A2FAE'],
-  apresentado: ['#ECFEFF', '#0E7490'], proposta: ['#FFF6EC', '#B45309'], perdido: ['#FEF2F2', '#DC2626']
-}
 const REGIAO_CHIP: Record<string, string[]> = {
   Sudeste: ['#F3EAFB', '#7A2FAE'], Sul: ['#EFF4FF', '#2563EB'],
   Nordeste: ['#FFF6EC', '#B45309'], 'Centro-Oeste': ['#ECFDF3', '#16A34A'], Norte: ['#ECFEFF', '#0E7490']
@@ -123,7 +119,7 @@ const groups = [{ k: 'stage', l: 'Estágio' }, { k: 'ambiente', l: 'Ambiente' },
 const PAGE_SIZE = 50
 
 const { openNewLead } = useOverlays()
-const { leads, ambientes, updateLead } = useCrm()
+const { leads, ambientes, updateLead, stages, stageChip } = useCrm()
 
 const drag = ref<string | null>(null)
 const over = ref<string | null>(null)
@@ -174,7 +170,7 @@ const filtered = computed(() => {
 const columns = computed(() => {
   if (groupBy.value === 'ambiente') return ambientes.value.map((a) => ({ id: a.id, name: a.name, chip: [a.color + '1A', a.color] }))
   if (groupBy.value === 'regiao') return REGIOES.filter((r) => filtered.value.some((l) => l.regiao === r)).map((r) => ({ id: r, name: r, chip: REGIAO_CHIP[r] || ['#F4F5F7', '#52525B'] }))
-  return STAGES.map((s) => ({ id: s.id, name: s.name, chip: STAGE_CHIP[s.id] }))
+  return stages.value.map((s) => ({ id: s.id, name: s.name, chip: stageChip(s.id) }))
 })
 const keyOf = (l: any) => groupBy.value === 'ambiente' ? l.ambiente : groupBy.value === 'regiao' ? l.regiao : l.stage
 // Agrupa UMA vez por render (Map) em vez de refiltrar o array inteiro por coluna.

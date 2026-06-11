@@ -77,18 +77,18 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, UFS } from '~/utils/protoData'
+import { UFS } from '~/utils/protoData'
 // GoogleG/Icon são auto-importados do diretório components/.
 
 const { newLeadOpen, newEventOpen, toasts, toast } = useOverlays()
-const { ambientes, createLead } = useCrm()
+const { ambientes, createLead, openStages } = useCrm()
 
 const ambSel = ref('centelha')
 const sync = ref(true)
 const saving = ref(false)
-const stagesOpen = STAGES.filter((s) => s.id !== 'perdido')
+const stagesOpen = openStages
 
-const blankLead = () => ({ company: '', site: '', contactName: '', contactRole: '', indicadoPor: '', estado: 'SP', value: null as number | null, stage: 'mapeado' })
+const blankLead = () => ({ company: '', site: '', contactName: '', contactRole: '', indicadoPor: '', estado: 'SP', value: null as number | null, stage: openStages.value[0]?.id || 'mapeado' })
 const lf = ref(blankLead())
 const blankEvent = () => ({ titulo: '', data: '', tipo: 'meet', inicio: '10:00', fim: '11:00' })
 const ef = ref(blankEvent())

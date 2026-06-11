@@ -44,17 +44,24 @@
         <!-- ETAPAS DO FUNIL -->
         <div v-else-if="sec === 'funil'" class="card card-pad">
           <h3 class="set-h">Etapas do funil</h3>
-          <p class="set-p">Arraste para reordenar as etapas do pipeline.</p>
+          <p class="set-p">Arraste pelo ícone para reordenar. "Perdido" é a etapa de perda e fica fixa no fim.</p>
           <div class="cfg-stages">
-            <div v-for="s in STAGES" :key="s.id" class="cfg-stage">
-              <Icon name="more" :size="16" class="cfg-grip" />
+            <div
+              v-for="s in stages" :key="s.id" class="cfg-stage"
+              :class="{ dragging: dragId === s.id }" :draggable="!s.fixo"
+              @dragstart="onDragStart(s)" @dragend="dragId = null"
+              @dragover.prevent @drop.prevent="onDrop(s)"
+            >
+              <Icon name="more" :size="16" class="cfg-grip" :style="{ visibility: s.fixo ? 'hidden' : 'visible' }" />
               <span class="cfg-dot" :style="{ background: s.color }" />
               <span class="cfg-stage-name">{{ s.name }}</span>
+              <span v-if="s.fixo" class="badge badge-gray" style="height:20px;font-size:11px">fixa</span>
               <span class="cfg-stage-count">{{ countStage(s.id) }} leads</span>
-              <button class="btn btn-icon-only btn-sm btn-ghost"><Icon name="edit" :size="15" /></button>
+              <button class="icon-btn" style="width:30px;height:30px" title="Editar" @click="openEditStage(s)"><Icon name="edit" :size="15" /></button>
+              <button v-if="!s.fixo" class="icon-btn" style="width:30px;height:30px" title="Excluir" @click="removeStage(s)"><Icon name="trash" :size="15" /></button>
             </div>
           </div>
-          <button class="btn btn-secondary btn-sm" style="margin-top:16px"><Icon name="plus" :size="15" /> Nova etapa</button>
+          <button class="btn btn-secondary btn-sm" style="margin-top:16px" @click="openNewStage"><Icon name="plus" :size="15" /> Nova etapa</button>
         </div>
 
         <!-- INTEGRAÇÕES -->
@@ -95,14 +102,35 @@
         </div>
       </div>
     </div>
+
+    <!-- MODAL: nova / editar etapa -->
+    <div v-if="stageModal" class="modal-overlay" @mousedown="stageModal = ''">
+      <div class="modal" style="width:420px" @mousedown.stop>
+        <div class="modal-head">
+          <div><h3>{{ stageModal === 'new' ? 'Nova etapa' : 'Editar etapa' }}</h3><p>Nome e cor da etapa do funil.</p></div>
+          <button class="icon-btn" aria-label="Fechar" @click="stageModal = ''"><Icon name="x" :size="18" /></button>
+        </div>
+        <div class="modal-body">
+          <div class="field"><label>Nome</label><input v-model="sForm.name" placeholder="Ex.: Negociação" /></div>
+          <div class="field" style="margin-bottom:0"><label>Cor</label>
+            <div class="sw-grid">
+              <button v-for="c in STAGE_COLORS" :key="c" type="button" class="sw" :class="{ on: sForm.color === c }" :style="{ background: c }" @click="sForm.color = c" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" @click="stageModal = ''">Cancelar</button>
+          <button class="btn btn-primary" :disabled="!sForm.name || !sForm.name.trim()" @click="saveStage"><Icon name="check" :size="16" /> Salvar</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { STAGES } from '~/utils/protoData'
-
-const { leads } = useCrm()
+const { leads, stages, openStages, createStage, updateStage, deleteStage, reorderStages } = useCrm()
 const { user, nome, cargo } = useMe()
+const { toast } = useOverlays()
 
 const sec = ref('perfil')
 const SECTIONS = [
@@ -120,6 +148,38 @@ const prefList = [
   { k: 'semanal', t: 'Relatório semanal', d: 'Desempenho por ambiente e região, toda segunda.' }
 ]
 const countStage = (id: string) => leads.value.filter((l: any) => l.stage === id).length
+
+// --- Gerência de etapas do funil ---
+const STAGE_COLORS = ['#8A8F99', '#2563EB', '#8E3FC4', '#0891B2', '#D97706', '#16A34A', '#DC2626', '#DB2777', '#0EA5E9', '#6366F1']
+const stageModal = ref<'' | 'new' | 'edit'>('')
+const sForm = ref<{ name: string; color: string }>({ name: '', color: STAGE_COLORS[0] })
+const sEditId = ref<string | null>(null)
+function openNewStage() { sEditId.value = null; sForm.value = { name: '', color: STAGE_COLORS[0] }; stageModal.value = 'new' }
+function openEditStage(s: any) { sEditId.value = s.id; sForm.value = { name: s.name, color: s.color }; stageModal.value = 'edit' }
+async function saveStage() {
+  if (!sForm.value.name?.trim()) return
+  try {
+    if (sEditId.value) await updateStage(sEditId.value, { name: sForm.value.name, color: sForm.value.color })
+    else await createStage({ name: sForm.value.name, color: sForm.value.color })
+    stageModal.value = ''
+    toast('Etapa salva.', { type: 'pos', icon: 'check' })
+  } catch (e: any) { toast(e?.message || 'Não foi possível salvar a etapa.', { type: 'neg' }) }
+}
+async function removeStage(s: any) {
+  try { await deleteStage(s.id); toast('Etapa excluída.', { icon: 'check' }) }
+  catch (e: any) { toast(e?.message || 'Não foi possível excluir a etapa.', { type: 'neg' }) }
+}
+const dragId = ref<string | null>(null)
+function onDragStart(s: any) { if (s.fixo) return; dragId.value = s.id }
+async function onDrop(target: any) {
+  const from = dragId.value; dragId.value = null
+  if (!from || from === target.id || target.fixo) return
+  const ids = openStages.value.map((s) => s.id)
+  const fromIdx = ids.indexOf(from); const toIdx = ids.indexOf(target.id)
+  if (fromIdx < 0 || toIdx < 0) return
+  ids.splice(toIdx, 0, ...ids.splice(fromIdx, 1))
+  await reorderStages(ids)
+}
 
 // Integração Google Agenda
 // Lazy: não bloqueia a página esperando o status do Google (chamada de rede).
@@ -143,6 +203,11 @@ const conectado = computed(() => !!data.value?.conectado)
 .cfg-dot { width: 10px; height: 10px; border-radius: 99px; flex: 0 0 10px; }
 .cfg-stage-name { font-size: 13.5px; font-weight: 500; color: var(--ink); }
 .cfg-stage-count { margin-left: auto; font-size: 12px; color: var(--ink-3); font-family: var(--font-mono); }
+.cfg-stage[draggable=true] { cursor: grab; }
+.cfg-stage.dragging { opacity: .45; }
+.sw-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.sw { width: 28px; height: 28px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; padding: 0; outline: none; }
+.sw.on { border-color: #fff; box-shadow: 0 0 0 2px var(--ink); }
 
 .cfg-integ { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
 .cfg-integ-ico { width: 44px; height: 44px; border-radius: 11px; display: grid; place-items: center; flex: 0 0 44px; background: var(--surface); border: 1px solid var(--line); }

@@ -3,7 +3,7 @@
    addLeadItem/...), mas lê e grava nas tabelas reais do Supabase.
    A tradução entre o shape da UI (lead.contact, lead.next, lead.contacts[]...) e o
    modelo relacional (leads + contatos/tarefas/atividades/anexos) fica toda aqui. */
-import { regiao, initials as initialsOf, LOGO_COLORS } from '~/utils/protoData'
+import { regiao, initials as initialsOf, LOGO_COLORS, STAGES as DEFAULT_STAGES } from '~/utils/protoData'
 
 // id (uuid/string) -> cor estável do logo
 function logoColor(id: string) {
@@ -94,9 +94,29 @@ export function useCrm() {
     return (data as any[]) || []
   }, { default: () => [] as any[] })
 
+  // ---- Stages (etapas do funil) — do banco, com fallback aos padrões ----
+  const { data: stagesRaw, refresh: refreshStages } = useAsyncData('crm-stages', async () => {
+    const { data, error } = await supabase.from('stages').select('*').order('ordem')
+    if (error) { console.error('[useCrm] stages:', error.message); return null }
+    return data as any[]
+  }, { default: () => null })
+
   const leads = computed(() => (leadsRaw.value || []).map(mapLead))
   const ambientes = computed(() => (ambsRaw.value || []).map(mapAmb))
   function ambById(id: string) { return ambientes.value.find((a) => a.id === id) }
+
+  const stages = computed<any[]>(() => {
+    const rows = (stagesRaw.value && stagesRaw.value.length)
+      ? stagesRaw.value.map((s: any) => ({ id: s.id, name: s.name, color: s.color, ordem: s.ordem, fixo: s.fixo, terminal: s.terminal }))
+      : DEFAULT_STAGES.map((s: any, i: number) => ({ id: s.id, name: s.name, color: s.color, ordem: i + 1, fixo: s.id === 'perdido', terminal: s.id === 'perdido' ? 'perdido' : null }))
+    // não-terminais por ordem; terminais (perdido) sempre por último
+    return [...rows.filter((s: any) => !s.terminal).sort((a: any, b: any) => a.ordem - b.ordem), ...rows.filter((s: any) => s.terminal)]
+  })
+  const openStages = computed(() => stages.value.filter((s) => !s.terminal))
+  function stageById(id: string) { return stages.value.find((s) => s.id === id) }
+  function stageName(id: string) { return stageById(id)?.name || id }
+  function stageColor(id: string) { return stageById(id)?.color || '#8A8F99' }
+  function stageChip(id: string): [string, string] { const c = stageColor(id); return [c + '1A', c] }
 
   // ---- Escrita: leads ----
   async function updateLead(id: string, patch: Record<string, any>) {
@@ -210,13 +230,49 @@ export function useCrm() {
 
   const setAmbLogo = (id: string, url: string | null) => updateAmbiente(id, { logoUrl: url })
 
-  async function refreshCrm() { await Promise.all([refreshLeads(), refreshAmbs()]) }
+  // ---- Escrita: stages ----
+  async function createStage(input: { name: string; color?: string }) {
+    let slug = (input.name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || ('etapa-' + Math.abs(Date.now() % 100000))
+    if (stages.value.some((s) => s.id === slug)) slug = slug + '-' + Math.abs(Date.now() % 1000)
+    const ordem = Math.max(0, ...openStages.value.map((s) => s.ordem)) + 1
+    const { error } = await supabase.from('stages').insert({ id: slug, name: input.name, color: input.color || '#8A8F99', ordem })
+    if (error) { console.error('[useCrm] createStage:', error.message); throw error }
+    await refreshStages()
+    return slug
+  }
+  async function updateStage(id: string, patch: { name?: string; color?: string }) {
+    const up: any = {}
+    if ('name' in patch) up.name = patch.name
+    if ('color' in patch) up.color = patch.color
+    if (Object.keys(up).length) {
+      const { error } = await supabase.from('stages').update(up).eq('id', id)
+      if (error) console.error('[useCrm] updateStage:', error.message)
+    }
+    await refreshStages()
+  }
+  async function deleteStage(id: string) {
+    const s = stageById(id)
+    if (s?.fixo) throw new Error('Esta etapa é fixa e não pode ser excluída.')
+    const usados = leads.value.filter((l) => l.stage === id).length
+    if (usados > 0) throw new Error(`Mova os ${usados} lead(s) desta etapa antes de excluí-la.`)
+    const { error } = await supabase.from('stages').delete().eq('id', id)
+    if (error) { console.error('[useCrm] deleteStage:', error.message); throw error }
+    await refreshStages()
+  }
+  async function reorderStages(orderedIds: string[]) {
+    await Promise.all(orderedIds.map((id, i) => supabase.from('stages').update({ ordem: i + 1 }).eq('id', id)))
+    await refreshStages()
+  }
+
+  async function refreshCrm() { await Promise.all([refreshLeads(), refreshAmbs(), refreshStages()]) }
 
   return {
     leads, ambientes, ambById,
+    stages, openStages, stageById, stageName, stageColor, stageChip,
     updateLead, createLead, deleteLead,
     addLeadItem, updateLeadItem, removeLeadItem, setLeadNext, setLeadLogo,
     updateAmbiente, createAmbiente, setAmbLogo,
+    createStage, updateStage, deleteStage, reorderStages,
     refreshCrm
   }
 }

@@ -35,7 +35,7 @@
           <span class="filt-lbl">Estágio</span>
           <select v-model="fStage" class="filt-sel">
             <option value="">Todos</option>
-            <option v-for="s in STAGES" :key="s.id" :value="s.id">{{ s.name }}</option>
+            <option v-for="s in stages" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
         </div>
         <div class="filt-block">
@@ -166,9 +166,9 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, UFS, fmtBRL, regiao } from '~/utils/protoData'
+import { UFS, fmtBRL, regiao } from '~/utils/protoData'
 
-const { leads, ambientes, updateLead, setLeadLogo } = useCrm()
+const { leads, ambientes, updateLead, setLeadLogo, stages } = useCrm()
 const { openNewLead } = useOverlays()
 
 const q = ref('')

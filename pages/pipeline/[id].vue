@@ -347,9 +347,9 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, UFS, fmtBRL } from '~/utils/protoData'
+import { UFS, fmtBRL } from '~/utils/protoData'
 
-const { leads, updateLead, addLeadItem, updateLeadItem, removeLeadItem, setLeadNext } = useCrm()
+const { leads, updateLead, addLeadItem, updateLeadItem, removeLeadItem, setLeadNext, openStages, stageName: stageNameFn } = useCrm()
 const { toast } = useOverlays()
 const supabase = useSupabaseClient()
 const route = useRoute()
@@ -370,10 +370,10 @@ const tlIconBg: Record<string, { bg: string; fg: string }> = {
   stage: { bg: '#EFF6FF', fg: '#3B82F6' }, tarefa: { bg: '#FFF7ED', fg: '#C2410C' }
 }
 
-const stages = STAGES.filter((s) => s.id !== 'perdido')
-const curIdx = computed(() => stages.findIndex((s) => s.id === lead.value.stage))
+const stages = openStages
+const curIdx = computed(() => stages.value.findIndex((s) => s.id === lead.value.stage))
 const lost = computed(() => lead.value.stage === 'perdido')
-const stageName = computed(() => STAGES.find((s) => s.id === lead.value.stage)?.name)
+const stageName = computed(() => stageNameFn(lead.value.stage))
 const annual = computed(() => lead.value.value * 12)
 const composerPlaceholder = computed(() =>
   composer.value === 'nota' ? 'Escreva uma nota sobre este negócio…'
@@ -539,8 +539,8 @@ function fmtSize(b: number) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' 
 
 // Estágio
 function avancar() {
-  const cur = stages.findIndex((s) => s.id === lead.value.stage)
-  const next = stages[cur + 1]
+  const cur = stages.value.findIndex((s) => s.id === lead.value.stage)
+  const next = stages.value[cur + 1]
   if (!next) { toast('Já está no último estágio.', { type: 'warn' }); return }
   const now = new Date()
   updateLead(lead.value.id, { stage: next.id })

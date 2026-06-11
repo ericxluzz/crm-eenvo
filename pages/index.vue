@@ -74,9 +74,9 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, fmtBRL } from '~/utils/protoData'
+import { fmtBRL } from '~/utils/protoData'
 
-const { leads, ambientes, ambById } = useCrm()
+const { leads, ambientes, ambById, openStages, stageName } = useCrm()
 const { nome } = useMe()
 const primeiroNome = computed(() => (nome.value || '').split(' ')[0] || 'lá')
 
@@ -103,7 +103,7 @@ const evolucaoData = computed(() => {
   return out.length >= 2 ? out : [{ l: '—', v: 0 }, ...out]
 })
 
-const funnel = computed(() => STAGES.filter((s) => s.id !== 'perdido').map((s) => ({
+const funnel = computed(() => openStages.value.map((s) => ({
   ...s,
   count: baseLeads.value.filter((l) => l.stage === s.id).length,
   val: baseLeads.value.filter((l) => l.stage === s.id).reduce((a, l) => a + l.value, 0)
@@ -116,7 +116,6 @@ const today = computed(() => baseLeads.value.filter((l) => l.next && l.next.labe
 function fmtDate(d: string) { return d ? new Date(d).toLocaleDateString('pt-BR') : '' }
 
 function exportar() {
-  const stageName = (id: string) => STAGES.find((s) => s.id === id)?.name ?? id
   const head = ['ID', 'Empresa', 'Segmento', 'Estágio', 'MRR (R$/mês)', 'Ambiente', 'Estado', 'Região', 'Criado em']
   const rows = baseLeads.value.map((l) => [l.id, l.company, l.seg, stageName(l.stage), l.value, ambById(l.ambiente)?.short ?? l.ambiente, l.estado, l.regiao, l.created])
   const esc = (c: any) => `"${String(c ?? '').replace(/"/g, '""')}"`
