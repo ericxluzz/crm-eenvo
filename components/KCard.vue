@@ -1,5 +1,9 @@
 <template>
-  <div class="kcard" :class="{ dragging }" draggable="true" @dragstart="$emit('dragstart', lead)" @dragend="$emit('dragend')" @click="$emit('open', lead.id)">
+  <div
+    class="kcard" :class="{ dragging }" draggable="true"
+    @pointerdown="onDown" @pointerup="onUp"
+    @dragstart="onDragStart" @dragend="$emit('dragend')"
+  >
     <div class="top">
       <CompanyLogo :lead="lead" :size="36" :radius="10" :font-size="14" />
       <div class="grow">
@@ -33,7 +37,17 @@
 
 <script setup lang="ts">
 import { fmtBRL } from '~/utils/protoData'
-defineProps<{ lead: any; dragging?: boolean }>()
-defineEmits(['open', 'dragstart', 'dragend'])
+const props = defineProps<{ lead: any; dragging?: boolean }>()
+const emit = defineEmits(['open', 'dragstart', 'dragend'])
 const TEMPC: Record<string, string> = { quente: '#DC2626', morno: '#D97706', frio: '#2563EB' }
+
+// Cards são draggable; o evento `click` nativo é engolido pelo HTML5 drag.
+// Usamos pointer events com limite de movimento para distinguir clique de arraste.
+let downX = 0, downY = 0, didDrag = false
+function onDown(e: PointerEvent) { downX = e.clientX; downY = e.clientY; didDrag = false }
+function onDragStart() { didDrag = true; emit('dragstart', props.lead) }
+function onUp(e: PointerEvent) {
+  if (didDrag) return
+  if (Math.hypot(e.clientX - downX, e.clientY - downY) < 6) emit('open', props.lead.id)
+}
 </script>

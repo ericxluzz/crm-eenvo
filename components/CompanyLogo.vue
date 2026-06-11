@@ -1,5 +1,5 @@
 <template>
-  <span class="logo-slot logo-edit" :style="{ width: size + 'px', height: size + 'px', borderRadius: radius + 'px', flex: '0 0 ' + size + 'px' }" title="Clique para enviar um logo" @click.stop="pick">
+  <span class="logo-slot logo-edit" :style="{ width: size + 'px', height: size + 'px', borderRadius: radius + 'px', flex: '0 0 ' + size + 'px' }" title="Clique para enviar um logo" @click.stop="pick" @pointerdown.stop @pointerup.stop>
     <img v-if="lead.logoUrl" :src="lead.logoUrl" class="logo-real" :style="{ borderRadius: radius + 'px' }" alt="" />
     <span v-else class="logo-fallback" :style="{ background: lead.logo, color: '#fff', borderRadius: radius + 'px', fontSize: (fontSize || Math.round(size * 0.4)) + 'px' }">{{ lead.initials }}</span>
     <span class="logo-add" aria-hidden="true"><Icon name="plus" :size="Math.max(12, Math.round(size * 0.36))" /></span>
