@@ -4,25 +4,75 @@
     <template v-if="!sel">
       <div class="page-head">
         <div class="pt"><h1>Ambientes de captação</h1><p class="sub">De onde os leads da eenvo chegam. Abra um ambiente para ver os leads dentro dele.</p></div>
-        <div class="acts"><button class="btn btn-primary"><Icon name="plus" :size="17" /> Novo ambiente</button></div>
+        <div class="acts"><button class="btn btn-primary" @click="openEdit(null)"><Icon name="plus" :size="17" /> Novo ambiente</button></div>
       </div>
-      <div class="amb-grid">
-        <div v-for="a in ambientes" :key="a.id" class="amb-card" @click="sel = a.id">
-          <div class="amb-card-top">
-            <AmbienteLogo :amb="a" :size="48" :radius="12" :icon-size="24" />
-            <div class="grow"><div class="amb-card-nm">{{ a.name }}</div><div class="amb-card-ds">{{ a.desc }}</div></div>
-            <button class="icon-btn" style="width:32px;height:32px" title="Editar" @click.stop="openEdit(a)"><Icon name="edit" :size="15" /></button>
-          </div>
-          <div class="amb-card-stats">
-            <div><div class="n" style="font-family:var(--font-mono)">{{ leadsDe(a.id).length }}</div><div class="l">leads</div></div>
-            <div><div class="n" style="font-family:var(--font-mono)">{{ fmtBRL(mrrDe(a.id)) }}</div><div class="l">MRR potencial</div></div>
-            <div><div class="n" style="font-family:var(--font-mono)">{{ pct(a.id) }}%</div><div class="l">do total</div></div>
-          </div>
-          <div class="amb-card-foot">
-            <div class="prog" style="flex:1"><i :style="{ width: pct(a.id) + '%', background: a.color }" /></div>
-            <span class="muted" style="font-size:11.5px;white-space:nowrap">{{ ufsDe(a.id) }} {{ ufsDe(a.id) === 1 ? 'estado' : 'estados' }}</span>
+
+      <!-- resumo -->
+      <div class="stat-grid" style="margin-bottom:18px">
+        <StatCard icon="globe" icon-bg="#8E3FC41A" icon-fg="#8E3FC4" label="Ambientes ativos" :value="ambientes.length" :foot="`${total} leads no total`" />
+        <StatCard icon="users" icon-bg="#2563EB1A" icon-fg="#2563EB" label="Leads captados" :value="total" :foot="`em ${ambientes.length} ambientes`" />
+        <StatCard icon="coin" icon-bg="#16A34A1A" icon-fg="#16A34A" label="MRR potencial total" :value="fmtBRL(mrrTotal)" foot="soma de todos os ambientes" />
+      </div>
+
+      <!-- toolbar -->
+      <div class="card card-pad amb-toolbar">
+        <div class="amb-search">
+          <Icon name="search" :size="16" />
+          <input v-model="q" placeholder="Buscar ambiente por nome ou descrição…" />
+          <button v-if="q" class="icon-btn" style="width:26px;height:26px" @click="q = ''"><Icon name="x" :size="14" /></button>
+        </div>
+        <div class="flex aic gap8">
+          <span class="muted" style="font-size:12.5px">Ordenar:</span>
+          <div class="segmented">
+            <button :class="{ on: sort === 'leads' }" @click="sort = 'leads'">Nº de leads</button>
+            <button :class="{ on: sort === 'mrr' }" @click="sort = 'mrr'">MRR</button>
+            <button :class="{ on: sort === 'az' }" @click="sort = 'az'">A–Z</button>
           </div>
         </div>
+      </div>
+
+      <!-- tabela densa -->
+      <div class="card" style="margin-top:16px">
+        <div style="overflow-x:auto">
+          <table class="tbl amb-tbl">
+            <thead>
+              <tr>
+                <th>Ambiente</th>
+                <th style="text-align:right">Leads</th>
+                <th style="text-align:right">MRR potencial</th>
+                <th style="width:180px">% do total</th>
+                <th style="text-align:right">Estados</th>
+                <th style="width:44px" />
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="a in rows" :key="a.id" @click="sel = a.id">
+                <td>
+                  <div class="flex aic gap12">
+                    <AmbienteLogo :amb="a" :size="36" :radius="10" :icon-size="18" />
+                    <div class="min0">
+                      <div class="cell-strong truncate">{{ a.name }}</div>
+                      <div class="cell-mute truncate" style="font-size:12px">{{ a.desc }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="cell-strong" style="font-family:var(--font-mono);text-align:right">{{ a._leads }}</td>
+                <td class="cell-strong" style="font-family:var(--font-mono);text-align:right">{{ fmtBRL(a._mrr) }}</td>
+                <td>
+                  <div class="flex aic gap8">
+                    <div class="prog" style="flex:1"><i :style="{ width: a._pct + '%', background: a.color }" /></div>
+                    <span class="cell-mute" style="font-family:var(--font-mono);font-size:12px;min-width:34px;text-align:right">{{ a._pct }}%</span>
+                  </div>
+                </td>
+                <td class="cell-mute" style="font-family:var(--font-mono);text-align:right">{{ a._ufs }}</td>
+                <td>
+                  <button class="icon-btn" style="width:30px;height:30px" title="Editar" @click.stop="openEdit(a)"><Icon name="edit" :size="15" /></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-if="!rows.length" class="empty" style="padding:40px 20px">Nenhum ambiente encontrado para “{{ q }}”.</div>
       </div>
     </template>
 
@@ -107,11 +157,32 @@ import { fmtBRL } from '~/utils/protoData'
 const { leads, ambientes, ambById, updateAmbiente, setAmbLogo } = useCrm()
 
 const sel = ref<string | null>(null)
+const q = ref('')
+const sort = ref<'leads' | 'mrr' | 'az'>('leads')
+
 const total = computed(() => leads.value.length)
 const leadsDe = (id: string) => leads.value.filter((l) => l.ambiente === id)
 const mrrDe = (id: string) => leadsDe(id).filter((l) => l.stage !== 'perdido').reduce((s, l) => s + l.value, 0)
 const pct = (id: string) => total.value ? Math.round((leadsDe(id).length / total.value) * 100) : 0
 const ufsDe = (id: string) => new Set(leadsDe(id).map((l) => l.estado)).size
+const mrrTotal = computed(() => leads.value.filter((l) => l.stage !== 'perdido').reduce((s, l) => s + l.value, 0))
+
+// linhas enriquecidas + filtro + ordenação
+const rows = computed(() => {
+  const term = q.value.trim().toLowerCase()
+  let list = ambientes.value.map((a: any) => ({
+    ...a,
+    _leads: leadsDe(a.id).length,
+    _mrr: mrrDe(a.id),
+    _pct: pct(a.id),
+    _ufs: ufsDe(a.id),
+  }))
+  if (term) list = list.filter((a) => a.name.toLowerCase().includes(term) || (a.desc || '').toLowerCase().includes(term))
+  if (sort.value === 'leads') list.sort((a, b) => b._leads - a._leads)
+  else if (sort.value === 'mrr') list.sort((a, b) => b._mrr - a._mrr)
+  else list.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+  return list
+})
 
 const selAmb = computed(() => sel.value ? ambById(sel.value) : null)
 const selLeads = computed(() => sel.value ? leadsDe(sel.value) : [])
@@ -122,7 +193,11 @@ const byReg = computed(() => [...new Set(selLeads.value.map((l) => l.regiao))].m
 const editingId = ref<string | null>(null)
 const editing = computed(() => editingId.value ? ambById(editingId.value) : null)
 const form = ref<any>({})
-function openEdit(a: any) { editingId.value = a.id; form.value = { name: a.name, short: a.short, desc: a.desc } }
+function openEdit(a: any) {
+  if (!a) return // "Novo ambiente": placeholder de criação não implementado neste protótipo
+  editingId.value = a.id
+  form.value = { name: a.name, short: a.short, desc: a.desc }
+}
 function save() {
   if (!editingId.value) return
   updateAmbiente(editingId.value, { name: form.value.name, short: form.value.short, desc: form.value.desc })
@@ -131,3 +206,12 @@ function save() {
 function removeLogo() { if (editingId.value) setAmbLogo(editingId.value, null) }
 function openLead(id: string) { navigateTo(`/pipeline/${id}`) }
 </script>
+
+<style scoped>
+.amb-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 12px 14px; }
+.amb-search { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 240px; max-width: 460px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); color: var(--ink-3); }
+.amb-search input { flex: 1; border: 0; background: transparent; outline: none; font: inherit; font-size: 13.5px; color: var(--ink); }
+.amb-search input::placeholder { color: var(--ink-3); }
+.amb-tbl tbody tr { cursor: pointer; }
+.min0 { min-width: 0; }
+</style>
