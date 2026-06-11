@@ -134,19 +134,19 @@
     </template>
 
     <!-- Editar ambiente -->
-    <div v-if="editing" class="modal-overlay" @mousedown="editingId = null">
+    <div v-if="editing || creating" class="modal-overlay" @mousedown="closeModal">
       <div class="modal" style="width:520px" @mousedown.stop>
         <div class="modal-head">
-          <div><h3>Editar ambiente</h3><p>Nome, descrição e logo de identificação.</p></div>
-          <button class="icon-btn" aria-label="Fechar" @click="editingId = null"><Icon name="x" :size="18" /></button>
+          <div><h3>{{ creating ? 'Novo ambiente' : 'Editar ambiente' }}</h3><p>Nome, descrição e logo de identificação.</p></div>
+          <button class="icon-btn" aria-label="Fechar" @click="closeModal"><Icon name="x" :size="18" /></button>
         </div>
         <div class="modal-body">
-          <div class="flex aic gap16" style="margin-bottom:18px">
+          <div v-if="!creating" class="flex aic gap16" style="margin-bottom:18px">
             <AmbienteLogo :amb="editing" :size="64" :radius="16" :icon-size="30" />
             <div>
               <div class="cell-strong" style="font-size:14px">Logo de identificação</div>
               <div class="muted" style="font-size:12.5px;margin-bottom:8px">Clique no logo para enviar uma imagem.</div>
-              <button v-if="editing.logoUrl" class="btn btn-ghost btn-sm" @click="removeLogo"><Icon name="trash" :size="14" /> Remover logo</button>
+              <button v-if="editing?.logoUrl" class="btn btn-ghost btn-sm" @click="removeLogo"><Icon name="trash" :size="14" /> Remover logo</button>
             </div>
           </div>
           <div class="field"><label>Nome</label><input v-model="form.name" /></div>
@@ -154,7 +154,7 @@
           <div class="field"><label>Descrição</label><input v-model="form.desc" /></div>
         </div>
         <div class="modal-foot">
-          <button class="btn btn-ghost" @click="editingId = null">Cancelar</button>
+          <button class="btn btn-ghost" @click="closeModal">Cancelar</button>
           <button class="btn btn-primary" @click="save"><Icon name="check" :size="16" /> Salvar</button>
         </div>
       </div>
@@ -165,7 +165,7 @@
 <script setup lang="ts">
 import { fmtBRL } from '~/utils/protoData'
 
-const { leads, ambientes, ambById, updateAmbiente, setAmbLogo } = useCrm()
+const { leads, ambientes, ambById, updateAmbiente, createAmbiente, setAmbLogo } = useCrm()
 
 const sel = ref<string | null>(null)
 const q = ref('')
@@ -203,17 +203,22 @@ const selOpen = computed(() => selLeads.value.filter((l) => l.stage !== 'perdido
 const byReg = computed(() => [...new Set(selLeads.value.map((l) => l.regiao))].map((r) => ({ r, n: selLeads.value.filter((l) => l.regiao === r).length })))
 
 const editingId = ref<string | null>(null)
+const creating = ref(false)
 const editing = computed(() => editingId.value ? ambById(editingId.value) : null)
 const form = ref<any>({})
 function openEdit(a: any) {
-  if (!a) return // "Novo ambiente": placeholder de criação não implementado neste protótipo
-  editingId.value = a.id
-  form.value = { name: a.name, short: a.short, desc: a.desc }
+  if (a) { creating.value = false; editingId.value = a.id; form.value = { name: a.name, short: a.short, desc: a.desc } }
+  else { creating.value = true; editingId.value = null; form.value = { name: '', short: '', desc: '' } }
 }
-function save() {
-  if (!editingId.value) return
-  updateAmbiente(editingId.value, { name: form.value.name, short: form.value.short, desc: form.value.desc })
-  editingId.value = null
+function closeModal() { editingId.value = null; creating.value = false }
+async function save() {
+  if (creating.value) {
+    if (!form.value.name?.trim()) return
+    await createAmbiente({ name: form.value.name, short: form.value.short || form.value.name, desc: form.value.desc })
+  } else if (editingId.value) {
+    await updateAmbiente(editingId.value, { name: form.value.name, short: form.value.short, desc: form.value.desc })
+  }
+  closeModal()
 }
 function removeLogo() { if (editingId.value) setAmbLogo(editingId.value, null) }
 function openLead(id: string) { navigateTo(`/pipeline/${id}`) }

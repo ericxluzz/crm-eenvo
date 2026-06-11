@@ -32,6 +32,14 @@ export default defineNuxtConfig({
       callback: '/confirm',
       // Rotas públicas (não exigem login)
       exclude: ['/login', '/registro', '/recuperar-senha']
+    },
+    // Sessão persistente: cookie de ~1 ano + refresh automático.
+    // Loga uma vez e fica logado (não pede senha de novo a cada visita).
+    cookieOptions: {
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax',
+      // secure só em produção (https). Em localhost (http) o cookie secure não persistiria.
+      secure: process.env.NODE_ENV === 'production'
     }
   },
 

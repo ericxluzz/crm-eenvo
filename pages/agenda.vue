@@ -15,7 +15,7 @@
     <div v-if="!connected && !pending" class="card card-pad" style="margin-bottom:18px;display:flex;align-items:center;gap:12px">
       <span class="ic" style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--info-bg);color:var(--info);flex:0 0 38px"><Icon name="calendar" :size="19" /></span>
       <div class="grow">
-        <div class="cell-strong">Mostrando uma semana de exemplo</div>
+        <div class="cell-strong">Conecte sua Agenda Google</div>
         <div class="muted" style="font-size:13px">Conecte sua Agenda Google para ver seus compromissos reais aqui (somente leitura).</div>
       </div>
       <a href="/api/google/conectar" class="btn btn-secondary btn-sm"><GoogleG :size="15" /> Conectar</a>
@@ -91,8 +91,6 @@
 </template>
 
 <script setup lang="ts">
-import { EVENTS } from '~/utils/protoData'
-
 const GCOLOR: Record<string, string> = { meet: '#039BE5', call: '#0B8043', internal: '#8E24AA', task: '#F4511E' }
 const REAL_COLOR = '#039BE5'
 const dow = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D']
@@ -166,12 +164,6 @@ const blocks = computed(() => {
       if (sh < START) sh = START
       if (eh <= sh) eh = sh + 0.5
       out.push({ day: di, top: (sh - START) * ROW, height: Math.max((eh - sh) * ROW - 3, 18), title: e.title, loc: e.location, color: REAL_COLOR, timeLabel: hm(sh) + '–' + hm(eh) })
-    }
-  } else if (!pending.value) {
-    // Só mostra a semana de exemplo depois de saber que não há Google conectado
-    // (evita piscar eventos falsos antes dos reais chegarem).
-    for (const e of EVENTS) {
-      out.push({ day: e.day, top: (e.start - START) * ROW, height: Math.max((e.end - e.start) * ROW - 3, 18), title: e.title, loc: (e as any).loc || '', color: GCOLOR[e.type] || GCOLOR.call, timeLabel: hm(e.start) + '–' + hm(e.end) })
     }
   }
   return out

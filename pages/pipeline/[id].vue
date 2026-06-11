@@ -336,7 +336,7 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, fmtBRL, TIMELINE } from '~/utils/protoData'
+import { STAGES, fmtBRL } from '~/utils/protoData'
 
 const { leads, updateLead, addLeadItem, updateLeadItem, removeLeadItem, setLeadNext } = useCrm()
 const { toast } = useOverlays()
@@ -383,8 +383,9 @@ const tasks = computed<any[]>(() => {
   if (Array.isArray(l.tasks)) return l.tasks
   return l.next ? [{ id: 'seed', label: l.next.label, date: l.next.date, due: l.next.due, type: 'tarefa', done: false }] : []
 })
+// Atividades vêm do banco já ordenadas (mais recente primeiro).
 const userActs = computed<any[]>(() => Array.isArray((lead.value as any).activities) ? (lead.value as any).activities : [])
-const activities = computed<any[]>(() => [...[...userActs.value].reverse(), ...TIMELINE])
+const activities = computed<any[]>(() => userActs.value)
 const emailActs = computed(() => activities.value.filter((a) => a.type === 'email'))
 const attachments = computed<any[]>(() => Array.isArray((lead.value as any).attachments) ? (lead.value as any).attachments : [])
 

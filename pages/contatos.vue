@@ -26,7 +26,7 @@
           <span class="filt-lbl">Ambiente</span>
           <div class="flex aic gap8" style="flex-wrap:wrap">
             <button class="chip chip-sm" :class="{ active: fAmb === '' }" @click="fAmb = ''">Todos</button>
-            <button v-for="a in AMBIENTES" :key="a.id" class="chip chip-sm" :class="{ active: fAmb === a.id }" @click="fAmb = fAmb === a.id ? '' : a.id">
+            <button v-for="a in ambientes" :key="a.id" class="chip chip-sm" :class="{ active: fAmb === a.id }" @click="fAmb = fAmb === a.id ? '' : a.id">
               <span class="amb-dot" :style="{ background: a.color }" />{{ a.short }}
             </button>
           </div>
@@ -166,9 +166,9 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, AMBIENTES, fmtBRL, regiao } from '~/utils/protoData'
+import { STAGES, fmtBRL, regiao } from '~/utils/protoData'
 
-const { leads, updateLead, setLeadLogo } = useCrm()
+const { leads, ambientes, updateLead, setLeadLogo } = useCrm()
 const { openNewLead } = useOverlays()
 
 const q = ref('')

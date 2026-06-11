@@ -93,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, AMBIENTES, fmtBRL } from '~/utils/protoData'
+import { STAGES, fmtBRL } from '~/utils/protoData'
 
 const { leads, ambientes } = useCrm()
 
@@ -143,17 +143,20 @@ const regData = computed(() => ['Sudeste', 'Sul', 'Nordeste', 'Centro-Oeste', 'N
   .filter((r) => r.v > 0).sort((a, b) => b.v - a.v))
 const maxReg = computed(() => Math.max(1, ...regData.value.map((r) => r.v)))
 
-const motivos = [
-  { l: 'Preço', v: 42, c: '#DC2626' },
-  { l: 'Optou por concorrente', v: 28, c: '#D97706' },
-  { l: 'Sem orçamento', v: 18, c: '#8A8F99' },
-  { l: 'Sem resposta', v: 12, c: '#C9B6E0' },
-]
+// Motivos de perda reais (a partir dos leads marcados como perdidos)
+const motivos = computed(() => {
+  const cores = ['#DC2626', '#D97706', '#8A8F99', '#C9B6E0', '#8E3FC4']
+  const m = new Map<string, number>()
+  for (const l of leads.value) {
+    if (l.stage === 'perdido' && l.lostReason) m.set(l.lostReason, (m.get(l.lostReason) || 0) + 1)
+  }
+  return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([l, v], i) => ({ l, v, c: cores[i % cores.length] }))
+})
 
 // Exportar CSV real dos leads
 function exportar() {
   const stageName = (id: string) => STAGES.find((s) => s.id === id)?.name ?? id
-  const ambShort = (id: string) => AMBIENTES.find((a) => a.id === id)?.short ?? id
+  const ambShort = (id: string) => ambientes.value.find((a) => a.id === id)?.short ?? id
   const head = ['ID', 'Empresa', 'Segmento', 'Estágio', 'Temperatura', 'MRR (R$/mês)', 'Ambiente', 'Estado', 'Região', 'Criado em']
   const rows = leads.value.map((l: any) => [l.id, l.company, l.seg, stageName(l.stage), l.temp, l.value, ambShort(l.ambiente), l.estado, l.regiao, l.created])
   const esc = (c: any) => `"${String(c ?? '').replace(/"/g, '""')}"`

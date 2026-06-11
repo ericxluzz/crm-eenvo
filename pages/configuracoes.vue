@@ -14,10 +14,10 @@
           <p class="set-p">Como você aparece para o time no CRM.</p>
 
           <div class="cfg-avatar">
-            <EAvatar :name="me.name" :photo="me.photo" :size="72" ring />
+            <EAvatar :name="nome" :size="72" ring />
             <div>
-              <div class="cfg-avatar-name">{{ me.name }}</div>
-              <div class="cfg-avatar-sub">Head Comercial · eenvo</div>
+              <div class="cfg-avatar-name">{{ nome }}</div>
+              <div class="cfg-avatar-sub">{{ cargo }} · eenvo</div>
               <div class="flex gap8" style="margin-top:10px">
                 <button class="btn btn-secondary btn-sm"><Icon name="edit" :size="15" /> Trocar foto</button>
                 <button class="btn btn-ghost btn-sm">Remover</button>
@@ -28,9 +28,9 @@
           <div class="cfg-divider" />
 
           <div class="field-grid">
-            <div class="field"><label>Nome completo</label><input value="Diego Martins" /></div>
-            <div class="field"><label>Cargo</label><input value="Head Comercial" /></div>
-            <div class="field"><label>E-mail</label><input value="diego@eenvo.com.br" /></div>
+            <div class="field"><label>Nome completo</label><input :value="nome" readonly /></div>
+            <div class="field"><label>Cargo</label><input :value="cargo" readonly /></div>
+            <div class="field"><label>E-mail</label><input :value="user?.email" readonly /></div>
             <div class="field"><label>Telefone</label><input value="+55 11 98400-1190" /></div>
             <div class="field"><label>Fuso horário</label><input value="Brasília (GMT-3)" /></div>
             <div class="field"><label>Idioma</label><input value="Português (Brasil)" /></div>
@@ -99,7 +99,10 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, LEADS, me } from '~/utils/protoData'
+import { STAGES } from '~/utils/protoData'
+
+const { leads } = useCrm()
+const { user, nome, cargo } = useMe()
 
 const sec = ref('perfil')
 const SECTIONS = [
@@ -116,7 +119,7 @@ const prefList = [
   { k: 'tarefa', t: 'Lembrete de tarefa', d: 'Notificação antes do vencimento de uma ação.' },
   { k: 'semanal', t: 'Relatório semanal', d: 'Desempenho por ambiente e região, toda segunda.' }
 ]
-const countStage = (id: string) => LEADS.filter((l) => l.stage === id).length
+const countStage = (id: string) => leads.value.filter((l: any) => l.stage === id).length
 
 // Integração Google Agenda
 // Lazy: não bloqueia a página esperando o status do Google (chamada de rede).

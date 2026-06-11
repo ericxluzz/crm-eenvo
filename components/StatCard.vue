@@ -9,7 +9,7 @@
     <div class="num">{{ value }}</div>
     <div class="stat-lbl">{{ label }}</div>
     <div v-if="foot" class="foot">{{ foot }}</div>
-    <div v-if="spark" class="stat-spark"><MiniSpark :points="spark" :color="up ? '#16A34A' : '#DC2626'" /></div>
+    <div v-if="spark" class="stat-spark"><MiniSpark :points="spark" :h="26" :color="up ? '#16A34A' : '#DC2626'" /></div>
   </div>
 </template>
 

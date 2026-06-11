@@ -35,22 +35,16 @@
 
       <div class="pop-wrap">
         <div class="tb-user" @click="toggle('profile')">
-          <span class="avatar ring" style="width:36px;height:36px;font-size:14px;background:#8E3FC4">
-            <img v-if="me.photo" :src="me.photo" :alt="me.name" @error="photoErr = true" v-show="!photoErr" />
-            <template v-if="photoErr">{{ ini }}</template>
-          </span>
-          <div class="meta"><div class="nm">{{ me.name }}</div><div class="rl">{{ me.role }}</div></div>
+          <span class="avatar ring" style="width:36px;height:36px;font-size:14px;background:#8E3FC4">{{ ini }}</span>
+          <div class="meta"><div class="nm">{{ nome }}</div><div class="rl">{{ cargo }}</div></div>
           <Icon name="chevron-down" :size="16" style="color:var(--ink-3)" />
         </div>
         <template v-if="menu === 'profile'">
           <div class="pop-backdrop" @click="menu = null" />
           <div class="popover profile-pop">
             <div class="pp-head">
-              <span class="avatar" style="width:42px;height:42px;font-size:16px;background:#8E3FC4">
-                <img v-if="me.photo && !photoErr" :src="me.photo" :alt="me.name" />
-                <template v-else>{{ ini }}</template>
-              </span>
-              <div class="grow"><div class="pp-nm">{{ me.name }}</div><div class="pp-em">diego@eenvo.com.br</div></div>
+              <span class="avatar" style="width:42px;height:42px;font-size:16px;background:#8E3FC4">{{ ini }}</span>
+              <div class="grow"><div class="pp-nm">{{ nome }}</div><div class="pp-em">{{ user?.email }}</div></div>
             </div>
             <button class="pp-item" @click="goConfig"><Icon name="users" :size="16" /> Meu perfil</button>
             <button class="pp-item" @click="goConfig"><Icon name="settings" :size="16" /> Configurações</button>
@@ -64,14 +58,11 @@
 </template>
 
 <script setup lang="ts">
-import { me, initials } from '~/utils/protoData'
-
 const { logout } = useAuth()
 const { openNewLead } = useOverlays()
+const { user, nome, cargo, initials: ini } = useMe()
 const menu = ref<string | null>(null)
 const spin = ref(false)
-const photoErr = ref(false)
-const ini = initials(me.name)
 
 const notifs = ref([
   { icon: 'sparkles', bg: '#F3EAFB', fg: '#8E3FC4', t: 'Novo lead via Centelha', d: 'PetClube entrou no pipeline', time: '5 min', unread: true },

@@ -1,7 +1,7 @@
 <template>
   <div class="screen content-pad">
     <div class="page-head">
-      <div class="pt"><h1>Visão geral</h1><p class="sub">Bom dia, Diego. Panorama da captação e do funil da eenvo.</p></div>
+      <div class="pt"><h1>Visão geral</h1><p class="sub">Olá, {{ primeiroNome }}. Panorama da captação e do funil da eenvo.</p></div>
       <div class="acts">
         <label class="period-wrap">
           <Icon name="calendar" :size="16" />
@@ -78,6 +78,8 @@
 import { STAGES, fmtBRL } from '~/utils/protoData'
 
 const { leads, ambientes, ambById } = useCrm()
+const { nome } = useMe()
+const primeiroNome = computed(() => (nome.value || '').split(' ')[0] || 'lá')
 
 const periodo = ref('all')
 const baseLeads = computed(() => periodo.value === 'all'

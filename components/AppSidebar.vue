@@ -16,7 +16,6 @@
         >
           <Icon :name="it.icon" :size="19" />
           <span>{{ it.label }}</span>
-          <span v-if="it.count != null" class="nav-count">{{ it.count }}</span>
         </NuxtLink>
       </div>
     </nav>
