@@ -14,12 +14,25 @@ export const STAGES = [
 ]
 
 const UF_REGIAO: Record<string, string> = {
-  SP: 'Sudeste', RJ: 'Sudeste', MG: 'Sudeste', ES: 'Sudeste',
-  PR: 'Sul', SC: 'Sul', RS: 'Sul',
-  BA: 'Nordeste', PE: 'Nordeste', CE: 'Nordeste',
-  GO: 'Centro-Oeste', DF: 'Centro-Oeste', MT: 'Centro-Oeste'
+  // Norte
+  AC: 'Norte', AP: 'Norte', AM: 'Norte', PA: 'Norte', RO: 'Norte', RR: 'Norte', TO: 'Norte',
+  // Nordeste
+  AL: 'Nordeste', BA: 'Nordeste', CE: 'Nordeste', MA: 'Nordeste', PB: 'Nordeste',
+  PE: 'Nordeste', PI: 'Nordeste', RN: 'Nordeste', SE: 'Nordeste',
+  // Centro-Oeste
+  GO: 'Centro-Oeste', MT: 'Centro-Oeste', MS: 'Centro-Oeste', DF: 'Centro-Oeste',
+  // Sudeste
+  ES: 'Sudeste', MG: 'Sudeste', RJ: 'Sudeste', SP: 'Sudeste',
+  // Sul
+  PR: 'Sul', RS: 'Sul', SC: 'Sul'
 }
 export const regiao = (uf: string) => UF_REGIAO[uf] || '—'
+
+// Todas as 27 UFs do Brasil (ordem alfabética) — fonte única para selects de estado.
+export const UFS = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
+  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+]
 
 // Paleta cíclica para o logo (cor) de cada lead.
 export const LOGO_COLORS = ['#8E3FC4', '#2563EB', '#0891B2', '#16A34A', '#D97706', '#DB2777', '#0EA5E9', '#F97316', '#6366F1', '#0D9488']

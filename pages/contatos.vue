@@ -166,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES, fmtBRL, regiao } from '~/utils/protoData'
+import { STAGES, UFS, fmtBRL, regiao } from '~/utils/protoData'
 
 const { leads, ambientes, updateLead, setLeadLogo } = useCrm()
 const { openNewLead } = useOverlays()
@@ -174,7 +174,6 @@ const { openNewLead } = useOverlays()
 const q = ref('')
 const qd = useDebouncedRef(q) // busca com debounce (re-render só após parar de digitar)
 const tab = ref('todos')
-const UFS = ['SP', 'RJ', 'MG', 'ES', 'PR', 'SC', 'RS', 'BA', 'PE', 'CE', 'GO', 'DF']
 const REGIOES = ['Sudeste', 'Sul', 'Nordeste', 'Centro-Oeste', 'Norte']
 
 // filtros

@@ -77,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { STAGES } from '~/utils/protoData'
+import { STAGES, UFS } from '~/utils/protoData'
 // GoogleG/Icon são auto-importados do diretório components/.
 
 const { newLeadOpen, newEventOpen, toasts, toast } = useOverlays()
@@ -86,7 +86,6 @@ const { ambientes, createLead } = useCrm()
 const ambSel = ref('centelha')
 const sync = ref(true)
 const saving = ref(false)
-const UFS = ['SP', 'RJ', 'MG', 'ES', 'PR', 'SC', 'RS', 'BA', 'PE', 'CE', 'GO', 'DF']
 const stagesOpen = STAGES.filter((s) => s.id !== 'perdido')
 
 const blankLead = () => ({ company: '', site: '', contactName: '', contactRole: '', indicadoPor: '', estado: 'SP', value: null as number | null, stage: 'mapeado' })
