@@ -17,10 +17,10 @@
     </div>
 
     <div class="stat-grid" style="margin-bottom:18px">
-      <StatCard icon="coin" icon-bg="#F3EAFB" icon-fg="#7A2FAE" label="MRR no pipeline" :value="fmtBRL(mrr)" :delta="12" foot="vs. mês anterior" :spark="[22,24,23,26,27,30,32]" />
-      <StatCard icon="kanban" icon-bg="#EFF4FF" icon-fg="#2563EB" label="Negócios abertos" :value="open.length" :delta="8" foot="3 entraram esta semana" :spark="[9,10,11,11,12,14,15]" />
-      <StatCard icon="package" icon-bg="#FFF6EC" icon-fg="#B45309" label="Ticket médio" :value="fmtBRL(Math.round(mrr / open.length))" :delta="-4" foot="MRR por negócio" :spark="[24,23,24,22,23,21,21]" />
-      <StatCard icon="target" icon-bg="#ECFDF3" icon-fg="#16A34A" label="Taxa de conversão" value="24%" :delta="3" foot="lead → cliente" :spark="[18,19,20,21,22,23,24]" />
+      <StatCard icon="coin" icon-bg="#F3EAFB" icon-fg="#7A2FAE" label="MRR no pipeline" :value="fmtBRL(mrr)" foot="potencial em aberto" />
+      <StatCard icon="kanban" icon-bg="#EFF4FF" icon-fg="#2563EB" label="Negócios abertos" :value="open.length" :foot="novosSemana + ' entraram esta semana'" />
+      <StatCard icon="package" icon-bg="#FFF6EC" icon-fg="#B45309" label="Ticket médio" :value="fmtBRL(ticket)" foot="MRR por negócio" />
+      <StatCard icon="target" icon-bg="#ECFDF3" icon-fg="#16A34A" label="Taxa de conversão" :value="conversao + '%'" foot="alcançaram proposta" />
     </div>
 
     <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:18px;margin-bottom:18px">
@@ -52,10 +52,9 @@
     <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:18px">
       <div class="card card-pad">
         <div class="flex aic jcb" style="margin-bottom:8px">
-          <div><h3 style="margin:0;font-size:16px;font-weight:600">Evolução do MRR fechado</h3><p style="margin:3px 0 0;font-size:13px;color:var(--ink-3)">Últimos 7 meses (em milhares)</p></div>
-          <span class="badge badge-pos"><Icon name="trending" :size="13" /> +18% no semestre</span>
+          <div><h3 style="margin:0;font-size:16px;font-weight:600">Leads captados por mês</h3><p style="margin:3px 0 0;font-size:13px;color:var(--ink-3)">Por mês de entrada</p></div>
         </div>
-        <AreaChart :data="[{l:'Dez',v:18},{l:'Jan',v:21},{l:'Fev',v:19},{l:'Mar',v:26},{l:'Abr',v:24},{l:'Mai',v:31},{l:'Jun',v:34}]" />
+        <AreaChart :data="evolucaoData" />
       </div>
       <div class="card">
         <div class="card-pad" style="padding-bottom:8px">
@@ -88,6 +87,21 @@ const baseLeads = computed(() => periodo.value === 'all'
 
 const open = computed(() => baseLeads.value.filter((l) => l.stage !== 'perdido'))
 const mrr = computed(() => open.value.reduce((a, l) => a + l.value, 0))
+const ticket = computed(() => open.value.length ? Math.round(mrr.value / open.value.length) : 0)
+const novosSemana = computed(() => {
+  const d = new Date(); d.setDate(d.getDate() - 7)
+  const iso = d.toISOString().slice(0, 10)
+  return baseLeads.value.filter((l) => (l.created || '') >= iso).length
+})
+const conversao = computed(() => baseLeads.value.length
+  ? Math.round(baseLeads.value.filter((l) => l.stage === 'proposta').length / baseLeads.value.length * 100) : 0)
+const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+const evolucaoData = computed(() => {
+  const b = new Map<string, number>()
+  for (const l of baseLeads.value) { if (!l.created) continue; const k = String(l.created).slice(0, 7); b.set(k, (b.get(k) || 0) + 1) }
+  const out = [...b.entries()].sort((a, c) => (a[0] < c[0] ? -1 : 1)).map(([k, v]) => ({ l: MES[+k.slice(5, 7) - 1] ?? k, v }))
+  return out.length >= 2 ? out : [{ l: '—', v: 0 }, ...out]
+})
 
 const funnel = computed(() => STAGES.filter((s) => s.id !== 'perdido').map((s) => ({
   ...s,
@@ -97,7 +111,7 @@ const funnel = computed(() => STAGES.filter((s) => s.id !== 'perdido').map((s) =
 const maxF = computed(() => Math.max(1, ...funnel.value.map((f) => f.count)))
 
 const ambSeg = computed(() => ambientes.value.map((a) => ({ id: a.id, l: a.short, v: baseLeads.value.filter((l) => l.ambiente === a.id).length, c: a.color })))
-const today = computed(() => baseLeads.value.filter((l) => l.next && l.next.label !== '—').slice(0, 5))
+const today = computed(() => baseLeads.value.filter((l) => l.next && l.next.label).slice(0, 5))
 
 function fmtDate(d: string) { return d ? new Date(d).toLocaleDateString('pt-BR') : '' }
 
