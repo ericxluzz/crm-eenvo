@@ -6,6 +6,7 @@
         <span>Pipeline</span><Icon name="chevron-right" :size="14" /><span style="color:var(--ink);font-weight:500">{{ lead.company }}</span>
       </div>
       <div style="margin-left:auto" class="flex aic gap8">
+        <span class="badge badge-pos" style="font-family:var(--font-mono);font-size:13px" title="Valor da proposta">{{ fmtBRL(lead.value) }}</span>
         <span class="badge badge-gray" style="font-family:var(--font-mono)">{{ lead.id }}</span>
         <div style="position:relative">
           <button class="icon-btn" title="Mais" @click="moreOpen = !moreOpen"><Icon name="more" :size="18" /></button>
@@ -51,6 +52,15 @@
             <div class="row"><span class="k"><Icon name="pin" :size="15" />Região</span><span class="v">{{ lead.estado }} · {{ lead.regiao }}</span></div>
             <div class="row"><span class="k"><Icon name="clock" :size="15" />Criado em</span><span class="v">{{ fmtDate(lead.created) }}</span></div>
           </div>
+        </div>
+
+        <div class="card card-pad">
+          <div class="flex aic jcb" style="margin-bottom:8px">
+            <h3 class="section-title" style="margin:0">Resumo do projeto</h3>
+            <button class="btn btn-ghost btn-sm" title="Editar resumo" @click="openEdit()"><Icon name="edit" :size="15" /></button>
+          </div>
+          <p v-if="lead.resumo" style="font-size:13.5px;color:var(--ink-2);white-space:pre-wrap;margin:0;line-height:1.5">{{ lead.resumo }}</p>
+          <div v-else class="empty" style="padding:8px 0">Nenhum resumo ainda. Clique no lápis para escrever.</div>
         </div>
 
         <div class="card card-pad">
@@ -108,10 +118,11 @@
         <div class="card card-pad">
           <div class="flex aic jcb" style="margin-bottom:14px">
             <h3 class="section-title" style="margin:0">Estágio no funil</h3>
-            <span v-if="!lost" class="badge badge-warn"><span class="dot" />{{ stageName }}</span>
+            <span v-if="!terminalKind" class="badge badge-warn"><span class="dot" />{{ stageName }}</span>
+            <span v-else-if="terminalKind === 'ganho'" class="badge badge-pos"><span class="dot" />{{ wonStage?.name || 'Fechado' }}</span>
             <span v-else class="badge badge-neg"><span class="dot" />Perdido</span>
           </div>
-          <template v-if="!lost">
+          <template v-if="!terminalKind">
             <div class="stepper">
               <div v-for="(s, i) in stages" :key="s.id" class="st" :class="{ done: i < curIdx, cur: i === curIdx }" :title="s.name" />
             </div>
@@ -122,11 +133,19 @@
               >{{ s.name }}</span>
             </div>
             <hr class="hr" style="margin:16px 0" />
-            <div class="flex aic gap8">
+            <div class="flex aic gap8" style="flex-wrap:wrap">
               <button class="btn btn-secondary btn-sm" @click="avancar"><Icon name="arrow-up-right" :size="15" /> Avançar estágio</button>
+              <button class="btn btn-ghost btn-sm" style="color:var(--pos)" @click="openFechado"><Icon name="check-circle" :size="15" /> Marcar como {{ wonStage?.name || 'Fechado' }}</button>
               <button class="btn btn-ghost btn-sm" style="color:var(--neg)" @click="openLost"><Icon name="x" :size="15" /> Marcar como perdido</button>
             </div>
           </template>
+          <div v-else-if="terminalKind === 'ganho'">
+            <div class="flex aic gap12" style="background:var(--pos-bg);border:1px solid var(--pos-bd);border-radius:var(--r-md);padding:14px">
+              <Icon name="check-circle" :size="18" style="color:var(--pos)" />
+              <div class="grow"><div style="font-weight:600;font-size:13.5px;color:var(--pos)">{{ wonStage?.name || 'Negócio fechado' }}</div><div style="font-size:13px;color:var(--ink-2);margin-top:2px">Este negócio foi ganho.</div></div>
+              <button class="btn btn-secondary btn-sm" @click="reabrir"><Icon name="refresh" :size="15" /> Reabrir</button>
+            </div>
+          </div>
           <div v-else>
             <div class="flex aic gap12" style="background:var(--neg-bg);border:1px solid var(--neg-bd);border-radius:var(--r-md);padding:14px">
               <Icon name="x" :size="18" style="color:var(--neg)" />
@@ -193,14 +212,14 @@
       <div class="lead-aside-r flex" style="flex-direction:column;gap:20px">
         <div class="card card-pad">
           <h3 class="section-title">Resumo do negócio</h3>
-          <div style="font-size:13px;color:var(--ink-3)">Valor recorrente (MRR)</div>
+          <div style="font-size:13px;color:var(--ink-3)">Valor da proposta</div>
           <div style="font-size:30px;font-weight:600;letter-spacing:-.02em;margin:6px 0 2px;font-family:var(--font-mono)">{{ fmtBRL(lead.value) }}<span style="font-size:14px;font-weight:500;color:var(--ink-3);font-family:var(--font)">/mês</span></div>
           <div style="font-size:13px;color:var(--ink-2)">≈ {{ fmtBRL(annual) }} / ano</div>
           <hr class="hr" style="margin:16px 0" />
           <div class="kv">
             <div class="row" style="padding-top:0"><span class="k">Ambiente</span><span class="v"><AmbienteTag :id="lead.ambiente" size="sm" /></span></div>
             <div class="row"><span class="k">Região</span><span class="v">{{ lead.estado }} · {{ lead.regiao }}</span></div>
-            <div class="row"><span class="k">Estágio</span><span class="v">{{ lost ? 'Perdido' : stageName }}</span></div>
+            <div class="row"><span class="k">Estágio</span><span class="v">{{ terminalKind === 'perdido' ? 'Perdido' : terminalKind === 'ganho' ? (wonStage?.name || 'Fechado') : stageName }}</span></div>
           </div>
         </div>
 
@@ -295,6 +314,20 @@
       </div>
     </div>
 
+    <!-- MODAL: marcar como fechado -->
+    <div v-if="modal === 'fechado'" class="modal-overlay" @mousedown="modal = ''">
+      <div class="modal" style="width:440px" @mousedown.stop>
+        <div class="modal-head">
+          <div><h3>Marcar como {{ wonStage?.name || 'Fechado' }}</h3><p>Confirma que este negócio foi ganho?</p></div>
+          <button class="icon-btn" aria-label="Fechar" @click="modal = ''"><Icon name="x" :size="18" /></button>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" @click="modal = ''">Cancelar</button>
+          <button class="btn btn-primary" style="background:var(--pos);border-color:var(--pos)" @click="confirmFechado"><Icon name="check-circle" :size="16" /> Confirmar fechamento</button>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: marcar como perdido -->
     <div v-if="modal === 'lost'" class="modal-overlay" @mousedown="modal = ''">
       <div class="modal" style="width:460px" @mousedown.stop>
@@ -336,6 +369,10 @@
             <div class="field"><label>Instagram / redes</label><input v-model="eForm.instagram" placeholder="@empresa" /></div>
             <div class="field"><label>Plataforma de e-commerce</label><input v-model="eForm.plataforma" placeholder="VTEX, Shopify, Nuvemshop…" /></div>
           </div>
+          <div class="field" style="margin-top:12px">
+            <label>Resumo do projeto</label>
+            <textarea v-model="eForm.resumo" rows="4" placeholder="Contexto, escopo, o que foi combinado…" style="width:100%;resize:vertical;font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface)" />
+          </div>
         </div>
         <div class="modal-foot">
           <button class="btn btn-ghost" @click="modal = ''">Cancelar</button>
@@ -349,7 +386,7 @@
 <script setup lang="ts">
 import { UFS, fmtBRL } from '~/utils/protoData'
 
-const { leads, updateLead, addLeadItem, updateLeadItem, removeLeadItem, setLeadNext, openStages, stageName: stageNameFn } = useCrm()
+const { leads, updateLead, addLeadItem, updateLeadItem, removeLeadItem, setLeadNext, openStages, stages: allStages, stageName: stageNameFn, stageById, moverEstagio } = useCrm()
 const { toast } = useOverlays()
 const supabase = useSupabaseClient()
 const route = useRoute()
@@ -372,7 +409,8 @@ const tlIconBg: Record<string, { bg: string; fg: string }> = {
 
 const stages = openStages
 const curIdx = computed(() => stages.value.findIndex((s) => s.id === lead.value.stage))
-const lost = computed(() => lead.value.stage === 'perdido')
+const terminalKind = computed(() => stageById(lead.value.stage)?.terminal || null)
+const wonStage = computed(() => allStages.value.find((s) => s.terminal === 'ganho'))
 const stageName = computed(() => stageNameFn(lead.value.stage))
 const annual = computed(() => lead.value.value * 12)
 const composerPlaceholder = computed(() =>
@@ -407,7 +445,7 @@ function taskWhen(t: any) {
 }
 
 // ---- Modais ----
-const modal = ref<'' | 'contact' | 'task' | 'lost' | 'edit'>('')
+const modal = ref<'' | 'contact' | 'task' | 'lost' | 'fechado' | 'edit'>('')
 const moreOpen = ref(false)
 
 // Contato
@@ -537,14 +575,12 @@ function removeAtt(a: any) {
 }
 function fmtSize(b: number) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB' }
 
-// Estágio
+// Estágio — sempre via moverEstagio(), que já grava o log na timeline.
 function avancar() {
   const cur = stages.value.findIndex((s) => s.id === lead.value.stage)
   const next = stages.value[cur + 1]
   if (!next) { toast('Já está no último estágio.', { type: 'warn' }); return }
-  const now = new Date()
-  updateLead(lead.value.id, { stage: next.id })
-  addLeadItem(lead.value.id, 'activities', { id: crypto.randomUUID(), type: 'stage', who: 'Você', act: 'moveu para ' + next.name, time: 'Hoje · ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), body: '' }, userActs.value)
+  moverEstagio(lead.value.id, next.id, { origem: 'detalhe do lead' })
   toast('Avançou para ' + next.name + '.', { type: 'pos', icon: 'check' })
 }
 const lostReason = ref('')
@@ -552,13 +588,20 @@ const MOTIVOS = ['Preço', 'Timing', 'Concorrente', 'Sem resposta', 'Outro']
 function openLost() { lostReason.value = ''; modal.value = 'lost' }
 function confirmLost() {
   if (!lostReason.value) return
-  updateLead(lead.value.id, { stage: 'perdido', lostReason: lostReason.value, prevStage: lead.value.stage })
+  moverEstagio(lead.value.id, 'perdido', { motivo: lostReason.value, origem: 'detalhe do lead' })
   modal.value = ''
   toast('Negócio marcado como perdido.', { icon: 'check' })
 }
+function openFechado() { modal.value = 'fechado' }
+function confirmFechado() {
+  if (!wonStage.value) return
+  moverEstagio(lead.value.id, wonStage.value.id, { origem: 'detalhe do lead' })
+  modal.value = ''
+  toast('Negócio marcado como ' + wonStage.value.name + '.', { type: 'pos', icon: 'check' })
+}
 function reabrir() {
-  const back = (lead.value as any).prevStage || 'mapeado'
-  updateLead(lead.value.id, { stage: back })
+  const back = (lead.value as any).prevStage || 'nao_contatado'
+  moverEstagio(lead.value.id, back, { origem: 'reabertura' })
   toast('Negócio reaberto.', { type: 'pos', icon: 'check' })
 }
 
@@ -569,7 +612,7 @@ function openEdit() {
   eForm.value = {
     company: l.company, site: l.site, seg: l.seg, value: l.value, faturamento: l.faturamento,
     temp: l.temp || 'morno', employees: l.employees, shipments: l.shipments,
-    city: l.city, estado: l.estado, instagram: l.instagram, plataforma: l.plataforma
+    city: l.city, estado: l.estado, instagram: l.instagram, plataforma: l.plataforma, resumo: l.resumo
   }
   moreOpen.value = false
   modal.value = 'edit'
@@ -581,7 +624,7 @@ function saveEdit() {
     value: Number(f.value) || 0,
     faturamento: f.faturamento != null && f.faturamento !== '' ? Number(f.faturamento) : null,
     temp: f.temp, employees: f.employees, shipments: f.shipments,
-    city: f.city, estado: f.estado, instagram: f.instagram, plataforma: f.plataforma
+    city: f.city, estado: f.estado, instagram: f.instagram, plataforma: f.plataforma, resumo: f.resumo
   })
   modal.value = ''
   toast('Lead atualizado.', { type: 'pos', icon: 'check' })

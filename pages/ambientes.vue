@@ -107,7 +107,14 @@
             <div class="amb-kpi"><div class="n" style="font-family:var(--font-mono)">{{ fmtBRL(selMrr) }}</div><div class="l">MRR potencial</div></div>
           </div>
         </div>
-        <div v-if="byReg.length > 1" class="flex aic gap8" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line);flex-wrap:wrap">
+        <div v-if="byStage.length" class="flex aic gap8" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line);flex-wrap:wrap">
+          <span class="muted" style="font-size:12.5px;margin-right:4px">Por estágio:</span>
+          <span
+            v-for="x in byStage" :key="x.id" class="badge"
+            :style="{ background: x.color + '1A', color: x.color }"
+          ><span class="dot" :style="{ background: x.color }" />{{ x.name }} · {{ x.n }}</span>
+        </div>
+        <div v-if="byReg.length > 1" class="flex aic gap8" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap">
           <span class="muted" style="font-size:12.5px;margin-right:4px">Por região:</span>
           <span v-for="x in byReg" :key="x.r" class="uf-pill"><Icon name="pin" :size="11" />{{ x.r }} · {{ x.n }}</span>
         </div>
@@ -165,7 +172,7 @@
 <script setup lang="ts">
 import { fmtBRL } from '~/utils/protoData'
 
-const { leads, ambientes, ambById, updateAmbiente, createAmbiente, setAmbLogo } = useCrm()
+const { leads, ambientes, ambById, updateAmbiente, createAmbiente, setAmbLogo, stages } = useCrm()
 
 const sel = ref<string | null>(null)
 const q = ref('')
@@ -201,6 +208,9 @@ const selLeads = computed(() => sel.value ? leadsDe(sel.value) : [])
 const selMrr = computed(() => sel.value ? mrrDe(sel.value) : 0)
 const selOpen = computed(() => selLeads.value.filter((l) => l.stage !== 'perdido').length)
 const byReg = computed(() => [...new Set(selLeads.value.map((l) => l.regiao))].map((r) => ({ r, n: selLeads.value.filter((l) => l.regiao === r).length })))
+const byStage = computed(() => stages.value
+  .map((s) => ({ id: s.id, name: s.name, color: s.color, n: selLeads.value.filter((l) => l.stage === s.id).length }))
+  .filter((s) => s.n > 0))
 
 const editingId = ref<string | null>(null)
 const creating = ref(false)

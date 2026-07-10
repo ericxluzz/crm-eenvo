@@ -103,6 +103,39 @@
         </div>
       </div>
     </div>
+
+    <!-- MODAL: motivo ao arrastar p/ Perdido -->
+    <div v-if="modal === 'lost'" class="modal-overlay" @mousedown="cancelModal">
+      <div class="modal" style="width:460px" @mousedown.stop>
+        <div class="modal-head">
+          <div><h3>Marcar como perdido</h3><p>Selecione o motivo da perda.</p></div>
+          <button class="icon-btn" aria-label="Fechar" @click="cancelModal"><Icon name="x" :size="18" /></button>
+        </div>
+        <div class="modal-body">
+          <div class="flex gap8" style="flex-wrap:wrap">
+            <button v-for="m in MOTIVOS" :key="m" class="chip" :class="{ active: lostReason === m }" @click="lostReason = m">{{ m }}</button>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" @click="cancelModal">Cancelar</button>
+          <button class="btn btn-primary" style="background:var(--neg);border-color:var(--neg)" :disabled="!lostReason" @click="confirmLost"><Icon name="x" :size="16" /> Confirmar perda</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: confirmar Fechado ao arrastar -->
+    <div v-if="modal === 'fechado'" class="modal-overlay" @mousedown="cancelModal">
+      <div class="modal" style="width:440px" @mousedown.stop>
+        <div class="modal-head">
+          <div><h3>Marcar como {{ wonStage?.name || 'Fechado' }}</h3><p>Confirma que este negócio foi ganho?</p></div>
+          <button class="icon-btn" aria-label="Fechar" @click="cancelModal"><Icon name="x" :size="18" /></button>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" @click="cancelModal">Cancelar</button>
+          <button class="btn btn-primary" style="background:var(--pos);border-color:var(--pos)" @click="confirmFechado"><Icon name="check-circle" :size="16" /> Confirmar fechamento</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -119,7 +152,25 @@ const groups = [{ k: 'stage', l: 'Estágio' }, { k: 'ambiente', l: 'Ambiente' },
 const PAGE_SIZE = 50
 
 const { openNewLead } = useOverlays()
-const { leads, ambientes, updateLead, stages, stageChip } = useCrm()
+const { leads, ambientes, updateLead, stages, stageChip, stageById, moverEstagio } = useCrm()
+const wonStage = computed(() => stages.value.find((s) => s.terminal === 'ganho'))
+
+const modal = ref<'' | 'lost' | 'fechado'>('')
+const pendingLead = ref<string | null>(null)
+const pendingStage = ref<string | null>(null)
+const lostReason = ref('')
+const MOTIVOS = ['Preço', 'Timing', 'Concorrente', 'Sem resposta', 'Outro']
+function cancelModal() { modal.value = ''; pendingLead.value = null; pendingStage.value = null }
+function confirmLost() {
+  if (!lostReason.value || !pendingLead.value || !pendingStage.value) return
+  moverEstagio(pendingLead.value, pendingStage.value, { motivo: lostReason.value, origem: 'kanban' })
+  cancelModal()
+}
+function confirmFechado() {
+  if (!pendingLead.value || !pendingStage.value) return
+  moverEstagio(pendingLead.value, pendingStage.value, { origem: 'kanban' })
+  cancelModal()
+}
 
 const drag = ref<string | null>(null)
 const over = ref<string | null>(null)
@@ -203,9 +254,17 @@ function onDragEnd() { drag.value = null; over.value = null }
 function onLeave(e: DragEvent, id: string) { if (e.currentTarget === e.target && over.value === id) over.value = null }
 function onDrop(colId: string) {
   if (!drag.value) return
-  const field = groupBy.value === 'ambiente' ? 'ambiente' : groupBy.value === 'regiao' ? 'regiao' : 'stage'
-  updateLead(drag.value, { [field]: colId })
+  const leadId = drag.value
   drag.value = null; over.value = null
+  if (groupBy.value !== 'stage') {
+    const field = groupBy.value === 'ambiente' ? 'ambiente' : 'regiao'
+    updateLead(leadId, { [field]: colId })
+    return
+  }
+  const destino = stageById(colId)
+  if (destino?.terminal === 'perdido') { pendingLead.value = leadId; pendingStage.value = colId; lostReason.value = ''; modal.value = 'lost'; return }
+  if (destino?.terminal === 'ganho') { pendingLead.value = leadId; pendingStage.value = colId; modal.value = 'fechado'; return }
+  moverEstagio(leadId, colId, { origem: 'kanban' })
 }
 function openLead(id: string) { navigateTo(`/pipeline/${id}`) }
 </script>

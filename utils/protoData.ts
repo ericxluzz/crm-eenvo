@@ -5,11 +5,13 @@
    ============================================================ */
 
 export const STAGES = [
-  { id: 'mapeado', name: 'Mapeado', color: '#8A8F99' },
+  { id: 'nao_contatado', name: 'Não contatado', color: '#94A3B8' },
   { id: 'contatado', name: 'Contatado', color: '#2563EB' },
-  { id: 'reuniao', name: 'Reunião marcada', color: '#8E3FC4' },
-  { id: 'apresentado', name: 'Apresentado', color: '#0891B2' },
-  { id: 'proposta', name: 'Proposta enviada', color: '#D97706' },
+  { id: 'sem_resposta', name: 'Sem resposta', color: '#F59E0B' },
+  { id: 'respondeu', name: 'Respondeu', color: '#0891B2' },
+  { id: 'reuniao_marcada', name: 'Reunião marcada', color: '#8E3FC4' },
+  { id: 'proposta_enviada', name: 'Proposta enviada', color: '#DB2777' },
+  { id: 'pagamento-realizado', name: 'Pagamento realizado', color: '#16A34A' },
   { id: 'perdido', name: 'Perdido', color: '#DC2626' }
 ]
 

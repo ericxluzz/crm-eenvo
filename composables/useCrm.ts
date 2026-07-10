@@ -40,7 +40,7 @@ function mapLead(r: any) {
     id: c.id, name: c.nome, role: c.cargo, email: c.email, phone: c.telefone, photo: c.photo, principal: c.principal
   }))
   const tasks = tarefas.map((t) => ({ id: t.id, label: t.label, date: t.data, time: t.hora, type: t.type, done: t.done }))
-  const activities = ativs.map((a) => ({ id: a.id, type: a.type, who: a.who, act: a.act, body: a.body, time: fmtTime(a.created_at) }))
+  const activities = ativs.map((a) => ({ id: a.id, type: a.type, who: a.who, act: a.act, body: a.body, time: fmtTime(a.created_at), at: a.created_at }))
   const attachments = anexos.map((a) => ({ id: a.id, name: a.name, size: a.size, type: a.type, path: a.path, at: a.created_at }))
 
   const next = pend[0]
@@ -51,6 +51,7 @@ function mapLead(r: any) {
     id: r.id, company: r.company, seg: r.seg, value: Number(r.value) || 0, stage: r.stage, temp: r.temp || 'morno',
     site: r.site, ambiente: r.ambiente, estado: r.estado, city: r.city, employees: r.employees, shipments: r.shipments,
     faturamento: r.faturamento != null ? Number(r.faturamento) : null, instagram: r.instagram, plataforma: r.plataforma,
+    resumo: r.resumo || '',
     centelhaFase: r.centelha_fase, eventoNome: r.evento_nome, indicadoPor: r.indicado_por,
     tags: r.tags || [], lostReason: r.lost_reason, prevStage: r.prev_stage, logoUrl: r.logo_url,
     created: r.created_at ? r.created_at.slice(0, 10) : '',
@@ -72,7 +73,7 @@ const LEAD_COL: Record<string, string> = {
   ambiente: 'ambiente', estado: 'estado', city: 'city', employees: 'employees', shipments: 'shipments',
   lostReason: 'lost_reason', prevStage: 'prev_stage', logoUrl: 'logo_url',
   centelhaFase: 'centelha_fase', eventoNome: 'evento_nome', tags: 'tags', indicadoPor: 'indicado_por',
-  faturamento: 'faturamento', instagram: 'instagram', plataforma: 'plataforma'
+  faturamento: 'faturamento', instagram: 'instagram', plataforma: 'plataforma', resumo: 'resumo'
 }
 const ITEM_TABLE: Record<string, string> = { contacts: 'contatos', tasks: 'tarefas', activities: 'atividades', attachments: 'anexos' }
 
@@ -108,7 +109,7 @@ export function useCrm() {
   const stages = computed<any[]>(() => {
     const rows = (stagesRaw.value && stagesRaw.value.length)
       ? stagesRaw.value.map((s: any) => ({ id: s.id, name: s.name, color: s.color, ordem: s.ordem, fixo: s.fixo, terminal: s.terminal }))
-      : DEFAULT_STAGES.map((s: any, i: number) => ({ id: s.id, name: s.name, color: s.color, ordem: i + 1, fixo: s.id === 'perdido', terminal: s.id === 'perdido' ? 'perdido' : null }))
+      : DEFAULT_STAGES.map((s: any, i: number) => ({ id: s.id, name: s.name, color: s.color, ordem: i + 1, fixo: s.id === 'perdido' || s.id === 'pagamento-realizado', terminal: s.id === 'perdido' ? 'perdido' : s.id === 'pagamento-realizado' ? 'ganho' : null }))
     // não-terminais por ordem; terminais (perdido) sempre por último
     return [...rows.filter((s: any) => !s.terminal).sort((a: any, b: any) => a.ordem - b.ordem), ...rows.filter((s: any) => s.terminal)]
   })
@@ -135,6 +136,24 @@ export function useCrm() {
       else await supabase.from('contatos').insert({ lead_id: id, nome: c.name, cargo: c.role, email: c.email, telefone: c.phone, principal: true })
     }
     await refreshLeads()
+  }
+
+  // Único caminho pra trocar o estágio de um lead: sempre grava o novo stage
+  // E loga uma atividade type='stage' na mesma chamada — nenhuma tela (kanban,
+  // detalhe do lead) deve chamar updateLead({stage: ...}) diretamente.
+  async function moverEstagio(id: string, novoStageId: string, opts?: { motivo?: string; origem?: string }) {
+    const lead = leads.value.find((l) => l.id === id)
+    if (!lead || lead.stage === novoStageId) return
+    const destino = stageById(novoStageId)
+    const patch: Record<string, any> = { stage: novoStageId }
+    if (destino?.terminal === 'perdido') { patch.lostReason = opts?.motivo || 'Não informado'; patch.prevStage = lead.stage }
+    await updateLead(id, patch)
+    const via = opts?.origem ? ` (${opts.origem})` : ''
+    await addLeadItem(id, 'activities', {
+      id: crypto.randomUUID(), type: 'stage', who: 'Você',
+      act: 'moveu para ' + (destino?.name || novoStageId) + via,
+      body: opts?.motivo ? 'Motivo: ' + opts.motivo : ''
+    })
   }
 
   async function createLead(input: any) {
@@ -264,15 +283,29 @@ export function useCrm() {
     await refreshStages()
   }
 
+  // Dias desde a última mudança de estágio (fallback: data de criação do lead).
+  // Depende de moverEstagio() sempre logar uma atividade type='stage'.
+  function stageSince(lead: any): string {
+    const stageAct = (lead.activities || []).find((a: any) => a.type === 'stage' && a.at)
+    if (stageAct) return stageAct.at
+    return lead.created ? lead.created + 'T00:00:00' : ''
+  }
+  function daysInStage(lead: any): number {
+    const since = stageSince(lead)
+    if (!since) return 0
+    return Math.max(0, Math.floor((Date.now() - new Date(since).getTime()) / 86400000))
+  }
+
   async function refreshCrm() { await Promise.all([refreshLeads(), refreshAmbs(), refreshStages()]) }
 
   return {
     leads, ambientes, ambById,
     stages, openStages, stageById, stageName, stageColor, stageChip,
-    updateLead, createLead, deleteLead,
+    updateLead, createLead, deleteLead, moverEstagio,
     addLeadItem, updateLeadItem, removeLeadItem, setLeadNext, setLeadLogo,
     updateAmbiente, createAmbiente, setAmbLogo,
     createStage, updateStage, deleteStage, reorderStages,
+    stageSince, daysInStage,
     refreshCrm
   }
 }

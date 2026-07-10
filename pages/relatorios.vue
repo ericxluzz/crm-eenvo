@@ -13,7 +13,7 @@
       <StatCard icon="users" icon-bg="#F3EAFB" icon-fg="#7A2FAE" label="Leads captados" :value="totalLeads" :delta="15" foot="no período" :spark="sparkCaptados" />
       <StatCard icon="sparkles" icon-bg="#F3EAFB" icon-fg="#8E3FC4" label="Via Projeto Centelha" :value="centelhaLeads" :delta="20" :foot="`${pct(centelhaLeads)}% do total`" :spark="[2,3,3,4,5,5,centelhaLeads]" />
       <StatCard icon="users" icon-bg="#ECFDF3" icon-fg="#16A34A" label="Via indicação" :value="indicacaoLeads" :delta="9" :foot="`${pct(indicacaoLeads)}% do total`" :spark="[1,2,2,3,3,4,indicacaoLeads]" />
-      <StatCard icon="clock" icon-bg="#FFF6EC" icon-fg="#B45309" label="Ciclo médio" value="38 dias" :delta="-6" foot="mapeado → fechado" :spark="[44,42,41,40,39,38,38]" />
+      <StatCard icon="clock" icon-bg="#FFF6EC" icon-fg="#B45309" label="Ciclo médio" :value="cicloMedio != null ? cicloMedio + ' dias' : '—'" :foot="cicloMedio != null ? 'não contatado → fechado' : 'sem negócios fechados ainda'" />
     </div>
 
     <!-- Linha 1: distribuição por estágio + evolução temporal -->
@@ -45,6 +45,26 @@
           <AreaChart :data="evolucao" :h="200" />
         </div>
       </div>
+    </div>
+
+    <!-- Fila de follow-up -->
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-pad" style="padding-bottom:6px">
+        <div class="rpt-head"><h3>Fila de follow-up</h3><p>Leads em aberto há mais tempo sem mudar de estágio — comece por aqui</p></div>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>Empresa</th><th>Estágio</th><th>Ambiente</th><th style="text-align:right">Dias parado</th><th style="width:40px" /></tr></thead>
+        <tbody>
+          <tr v-for="l in followUp" :key="l.id" style="cursor:pointer" @click="navigateTo(`/pipeline/${l.id}`)">
+            <td class="cell-strong">{{ l.company }}</td>
+            <td><StageBadge :stage="l.stage" /></td>
+            <td><AmbienteTag :id="l.ambiente" size="sm" /></td>
+            <td :style="{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: l._dias >= 14 ? 'var(--neg)' : 'var(--ink)' }">{{ l._dias }}</td>
+            <td><Icon name="chevron-right" :size="16" style="color:var(--ink-3)" /></td>
+          </tr>
+        </tbody>
+      </table>
+      <div v-if="!followUp.length" class="empty" style="padding:30px 0">Nenhum lead em aberto no momento.</div>
     </div>
 
     <!-- Desempenho por ambiente -->
@@ -95,7 +115,7 @@
 <script setup lang="ts">
 import { fmtBRL } from '~/utils/protoData'
 
-const { leads, ambientes, stages, stageName } = useCrm()
+const { leads, ambientes, stages, stageName, daysInStage, stageSince } = useCrm()
 
 const totalLeads = computed(() => leads.value.length)
 const pct = (n: number) => totalLeads.value ? Math.round((n / totalLeads.value) * 100) : 0
@@ -109,6 +129,27 @@ const maxMrr = computed(() => Math.max(1, ...ambPerf.value.map((r) => r.mrr)))
 const centelhaLeads = computed(() => leads.value.filter((l) => l.ambiente === 'centelha').length)
 const indicacaoLeads = computed(() => leads.value.filter((l) => l.ambiente === 'indicacao').length)
 const perdidos = computed(() => leads.value.filter((l) => l.stage === 'perdido').length)
+
+// Ciclo médio real: dias entre criação e fechamento, só p/ leads no estágio terminal "ganho"
+const wonStageId = computed(() => stages.value.find((s) => s.terminal === 'ganho')?.id)
+const cicloMedio = computed(() => {
+  if (!wonStageId.value) return null
+  const fechados = leads.value.filter((l) => l.stage === wonStageId.value && l.created)
+  if (!fechados.length) return null
+  const total = fechados.reduce((sum, l) => {
+    const since = new Date(stageSince(l)).getTime()
+    const created = new Date(l.created + 'T00:00:00').getTime()
+    return sum + Math.max(0, Math.round((since - created) / 86400000))
+  }, 0)
+  return Math.round(total / fechados.length)
+})
+
+// Fila de follow-up: leads em aberto (fora de estágio terminal), mais parados primeiro
+const followUp = computed(() => leads.value
+  .filter((l) => !stages.value.find((s) => s.id === l.stage)?.terminal)
+  .map((l) => ({ ...l, _dias: daysInStage(l) }))
+  .sort((a, b) => b._dias - a._dias)
+  .slice(0, 15))
 
 // KPI spark — leads captados acumulados nos últimos meses
 const sparkCaptados = computed(() => {
