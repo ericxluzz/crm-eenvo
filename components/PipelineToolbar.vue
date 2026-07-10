@@ -6,6 +6,12 @@
         <button :class="{ on: view === 'list' }" @click="$emit('update:view', 'list')"><Icon name="list" :size="15" /> Lista</button>
       </div>
 
+      <div class="pp-search">
+        <Icon name="search" :size="15" style="color:var(--ink-3)" />
+        <input :value="q" placeholder="Buscar empresa ou contato…" @input="$emit('update:q', ($event.target as HTMLInputElement).value)">
+        <button v-if="q" class="pp-clear" @click="$emit('update:q', '')"><Icon name="x" :size="14" /></button>
+      </div>
+
       <button class="btn btn-secondary btn-sm" :class="{ 'pp-on': showFilters }" @click="$emit('update:showFilters', !showFilters)">
         <Icon name="filter" :size="15" /> Filtros
         <span v-if="activeCount" class="pp-fbadge">{{ activeCount }}</span>
@@ -32,14 +38,6 @@
 
     <Transition name="pp-exp">
       <div v-if="showFilters" class="pp-filters">
-        <div class="pp-frow">
-          <div class="pp-search">
-            <Icon name="search" :size="15" style="color:var(--ink-3)" />
-            <input :value="q" placeholder="Buscar empresa ou contato…" @input="$emit('update:q', ($event.target as HTMLInputElement).value)">
-            <button v-if="q" class="pp-clear" @click="$emit('update:q', '')"><Icon name="x" :size="14" /></button>
-          </div>
-        </div>
-
         <div class="pp-frow">
           <span class="pp-flabel">Ambiente</span>
           <button class="chip" :class="{ active: ambFilter === 'todos' }" @click="$emit('update:ambFilter', 'todos')">Todos</button>
@@ -96,7 +94,7 @@ const temps = [{ id: 'quente', l: 'Quente', c: '#DC2626' }, { id: 'morno', l: 'M
 .pp-frow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
 .pp-flabel { font-size: 12px; font-weight: 600; color: var(--ink-3); width: 84px; flex: none }
 .pp-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block }
-.pp-search { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 420px; height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface) }
+.pp-search { display: flex; align-items: center; gap: 8px; flex: 1 1 220px; min-width: 180px; max-width: 360px; height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface) }
 .pp-search input { flex: 1; border: 0; background: transparent; font: inherit; font-size: 13.5px; color: var(--ink); outline: none }
 .pp-clear { border: 0; background: transparent; cursor: pointer; color: var(--ink-3); display: grid; place-items: center; padding: 2px }
 .pp-clear:hover { color: var(--ink) }
